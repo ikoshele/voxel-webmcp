@@ -16,7 +16,6 @@ import { setupPlayerEntity } from '../player/entity';
 import { addNametag, applyModel } from '../helpers/model';
 import { registerBlocks, registerItems } from './registry';
 import { setChunk, clearStorage, removeChunk, chunkSetBlock, chunkExist } from './world';
-import { playSound } from './sound';
 import { cloudMesh, setupClouds, setupSky, skyMesh } from './sky';
 
 import * as BABYLON from '@babylonjs/core/Legacy/legacy';
@@ -49,7 +48,6 @@ import {
 	IEntityMove,
 	IEntityHeldItem,
 	IEntityArmor,
-	ISoundPlay,
 	ILoginStatus,
 	IPlayerSetBlockReach,
 	IUpdateTextBoard,
@@ -382,10 +380,6 @@ export function setupConnection(noax, socketx: BaseSocket) {
 
 			socket.on('EntityHeldItem', (data: IEntityHeldItem) => {});
 			socket.on('EntityArmor', (data: IEntityArmor) => {});
-
-			socket.on('SoundPlay', (data: ISoundPlay) => {
-				playSound(data.sound, data.volume, data.x != undefined ? [data.x, data.y, data.z] : null, noa);
-			});
 
 			const pos = noa.ents.getState(noa.playerEntity, 'position');
 			let lastPos = [];

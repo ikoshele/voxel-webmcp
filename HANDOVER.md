@@ -1,6 +1,6 @@
 # Handover — WebMCP verification
 
-The ten-tool singleplayer implementation is present. `context/webmcp.md` is authoritative for
+The eleven-tool singleplayer implementation is present. `context/webmcp.md` is authoritative for
 behavior and limits. Delete this file after the browser console and agent scenarios below pass.
 
 ## Verification order
@@ -15,9 +15,8 @@ behavior and limits. Delete this file after the browser console and agent scenar
    `shape: 'walls'`, verify it is hollow vertically, and call `undo`.
 8. Copy a small asymmetric region with `mirror: 'x'` and `rotation: 90`, verify orientation,
    then rotate it in place with `move_region` and undo both calls.
-9. Start several tool calls without awaiting between them and confirm their results and world
-   revisions follow call order without overlapping edits.
-10. Verify `document.modelContext` discovers all ten tools in a WebMCP-capable browser.
+9. Run an animated edit and confirm its result returns only after the final visible block change.
+10. Verify `document.modelContext` discovers all eleven tools in a WebMCP-capable browser.
 11. Run the second-floor, copied-window, basement, staircase, roof, and tower scenarios with an agent.
 
 ## Relevant paths
@@ -38,4 +37,4 @@ behavior and limits. Delete this file after the browser console and agent scenar
 4. Authoritative scans run in the worker, never through `noa.getBlock`.
 5. Undo state lives only in worker RAM and resets with the session.
 6. `window.__mcp` appears after `LoginSuccess`, only in singleplayer.
-7. All valid WebMCP requests are serialized in the worker, including reads.
+7. WebMCP requests are not serialized; callers must await dependent edits and undo calls.

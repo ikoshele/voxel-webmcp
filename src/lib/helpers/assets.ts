@@ -20,10 +20,6 @@ export function getAsset(asset: string, type: string): string {
 		switch (type) {
 			case 'texture':
 				return `${server}/${asset}.png`;
-			case 'sound':
-				return `${server}/${asset}.ogg`;
-			case 'audio':
-				return `${server}/${asset}.ogg`;
 			case 'model':
 				return `${server}/${asset}.json`;
 			default:
@@ -35,10 +31,6 @@ export function getAsset(asset: string, type: string): string {
 		switch (type) {
 			case 'texture':
 				return `./textures/${asset}.png`;
-			case 'sound':
-				return `./audio/${asset}.ogg`;
-			case 'audio':
-				return `./audio/${asset}.ogg`;
 			case 'model':
 				return `./models/${asset}.json`;
 			default:

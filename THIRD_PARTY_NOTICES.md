@@ -18,10 +18,10 @@ fork is independently maintained and is not endorsed by the upstream authors.
 
 ## Pixel Perfection Community Edition
 
-VoxelSrv attributes its graphics and sound collection to
+VoxelSrv attributes its graphics collection to
 [Pixel Perfection Community Edition](https://github.com/Athemis/PixelPerfectionCE), originally
-created by XSSheep and maintained by community contributors. Corresponding files in this fork
-are distributed primarily under `public/textures/` and `public/audio/`.
+created by XSSheep and maintained by community contributors. Corresponding graphics in this
+fork are distributed primarily under `public/textures/`.
 
 - Licence: [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/legalcode)
 - Source: [Athemis/PixelPerfectionCE](https://github.com/Athemis/PixelPerfectionCE)

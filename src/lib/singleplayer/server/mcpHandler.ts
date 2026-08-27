@@ -11,8 +11,9 @@ const encoder = new TextEncoder();
 const undoLimit = 50;
 const maxScanVolume = 65536;
 const maxEditVolume = 65536;
+const maxDelayMs = 100;
+const maxAnimationDurationMs = 60000;
 const undoJournal: Change[][] = [];
-let operationQueue: Promise<void> = Promise.resolve();
 
 type Position = [number, number, number];
 type Box = { min: Position; max: Position; size: Position; volume: number };
@@ -85,6 +86,16 @@ function requireBlock(server: Server, value: any, name: string) {
 	return server.registry.blocks[value].numId;
 }
 
+function animationDelay(args: any) {
+	const value = args.delay_ms == undefined ? 0 : args.delay_ms;
+	if (!Number.isInteger(value) || value < 0 || value > maxDelayMs) throw new Error(`delay_ms must be an integer from 0 to ${maxDelayMs}`);
+	return value;
+}
+
+function wait(milliseconds: number) {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 function key(position: Position) {
 	return position.join(',');
 }
@@ -93,7 +104,17 @@ function addPlan(plan: Map<string, Planned>, position: Position, block: number) 
 	plan.set(key(position), { position, block });
 }
 
-async function applyPlan(server: Server, world: World, plan: Map<string, Planned>, recordUndo = true) {
+function sendChanges(server: Server, changes: Change[]) {
+	for (let offset = 0; offset < changes.length; offset += 1000) {
+		const blocks = {};
+		changes.slice(offset, offset + 1000).forEach((change, index) => {
+			blocks[index] = { id: change.after, x: change.position[0], y: change.position[1], z: change.position[2] };
+		});
+		server.players.sendPacketAll('WorldMultiBlockUpdate', { blocks });
+	}
+}
+
+async function applyPlan(server: Server, world: World, plan: Map<string, Planned>, recordUndo = true, delayMs = 0) {
 	const changes: Change[] = [];
 	let skipped = 0;
 	for (const item of plan.values()) {
@@ -105,19 +126,26 @@ async function applyPlan(server: Server, world: World, plan: Map<string, Planned
 		if (before === item.block) continue;
 		changes.push({ position: item.position, before, after: item.block });
 	}
-	for (const change of changes) await world.setBlock(change.position, change.after, false);
-	for (let offset = 0; offset < changes.length; offset += 1000) {
-		const blocks = {};
-		changes.slice(offset, offset + 1000).forEach((change, index) => {
-			blocks[index] = { id: change.after, x: change.position[0], y: change.position[1], z: change.position[2] };
-		});
-		server.players.sendPacketAll('WorldMultiBlockUpdate', { blocks });
+	const animationDurationMs = Math.max(0, changes.length - 1) * delayMs;
+	if (animationDurationMs > maxAnimationDurationMs) {
+		throw new Error(`Animated edit would require ${animationDurationMs} ms of delay for ${changes.length} changed blocks at delay_ms ${delayMs}; the maximum is ${maxAnimationDurationMs} ms. Reduce delay_ms, split the edit, or use delay_ms 0 for an instant edit.`);
+	}
+	if (delayMs === 0) {
+		for (const change of changes) await world.setBlock(change.position, change.after, false);
+		sendChanges(server, changes);
+	} else {
+		for (let index = 0; index < changes.length; index++) {
+			const change = changes[index];
+			await world.setBlock(change.position, change.after, false);
+			sendChanges(server, [change]);
+			if (index + 1 < changes.length) await wait(delayMs);
+		}
 	}
 	if (recordUndo && changes.length > 0) {
 		undoJournal.push(changes);
 		while (undoJournal.length > undoLimit) undoJournal.shift();
 	}
-	return { changed_blocks: changes.length, skipped_out_of_bounds: skipped, world_revision: getWorldRevision() };
+	return { changed_blocks: changes.length, skipped_out_of_bounds: skipped, delay_ms: delayMs, animation_duration_ms: animationDurationMs, world_revision: getWorldRevision() };
 }
 
 function catalog(server: Server) {
@@ -309,12 +337,12 @@ async function fillRegion(server: Server, args: any) {
 	const shape = args.shape || 'solid';
 	if (!['solid', 'walls', 'shell'].includes(shape)) throw new Error('shape must be solid, walls, or shell');
 	const plan = new Map<string, Planned>();
-	for (let x = region.min[0]; x <= region.max[0]; x++) for (let y = region.min[1]; y <= region.max[1]; y++) for (let z = region.min[2]; z <= region.max[2]; z++) {
+	for (let y = region.min[1]; y <= region.max[1]; y++) for (let x = region.min[0]; x <= region.max[0]; x++) for (let z = region.min[2]; z <= region.max[2]; z++) {
 		const side = x === region.min[0] || x === region.max[0] || z === region.min[2] || z === region.max[2];
 		const face = side || y === region.min[1] || y === region.max[1];
 		if (shape === 'solid' || (shape === 'walls' && side) || (shape === 'shell' && face)) addPlan(plan, [x, y, z], id);
 	}
-	return applyPlan(server, world, plan);
+	return applyPlan(server, world, plan, true, animationDelay(args));
 }
 
 async function replaceBlocks(server: Server, args: any) {
@@ -324,11 +352,11 @@ async function replaceBlocks(server: Server, args: any) {
 	const from = requireBlock(server, args.from_block, 'from_block');
 	const to = requireBlock(server, args.to_block, 'to_block');
 	const plan = new Map<string, Planned>();
-	for (let x = region.min[0]; x <= region.max[0]; x++) for (let y = region.min[1]; y <= region.max[1]; y++) for (let z = region.min[2]; z <= region.max[2]; z++) {
+	for (let y = region.min[1]; y <= region.max[1]; y++) for (let x = region.min[0]; x <= region.max[0]; x++) for (let z = region.min[2]; z <= region.max[2]; z++) {
 		const position: Position = [x, y, z];
 		if (blockId(world, position) === from) addPlan(plan, position, to);
 	}
-	return applyPlan(server, world, plan);
+	return applyPlan(server, world, plan, true, animationDelay(args));
 }
 
 async function setBlocks(server: Server, args: any) {
@@ -336,13 +364,13 @@ async function setBlocks(server: Server, args: any) {
 	const world = currentWorld(server);
 	const plan = new Map<string, Planned>();
 	args.blocks.forEach((item, index) => addPlan(plan, point(item.position, `blocks[${index}].position`), requireBlock(server, item.block, `blocks[${index}].block`)));
-	return applyPlan(server, world, plan);
+	return applyPlan(server, world, plan, true, animationDelay(args));
 }
 
 async function snapshot(world: World, region: Box) {
 	await loadChunks(world, region);
 	const values: { offset: Position; block: number }[] = [];
-	for (let x = region.min[0]; x <= region.max[0]; x++) for (let y = region.min[1]; y <= region.max[1]; y++) for (let z = region.min[2]; z <= region.max[2]; z++) {
+	for (let y = region.min[1]; y <= region.max[1]; y++) for (let x = region.min[0]; x <= region.max[0]; x++) for (let z = region.min[2]; z <= region.max[2]; z++) {
 		values.push({ offset: [x - region.min[0], y - region.min[1], z - region.min[2]], block: blockId(world, [x, y, z]) });
 	}
 	return values;
@@ -367,14 +395,20 @@ async function copyOrMove(server: Server, args: any, move: boolean) {
 	if (![0, 90, 180, 270].includes(rotation)) throw new Error('rotation must be 0, 90, 180, or 270');
 	const values = await snapshot(world, region);
 	const plan = new Map<string, Planned>();
-	if (move) {
-		for (let x = region.min[0]; x <= region.max[0]; x++) for (let y = region.min[1]; y <= region.max[1]; y++) for (let z = region.min[2]; z <= region.max[2]; z++) addPlan(plan, [x, y, z], 0);
-	}
+	const destinationKeys = new Set<string>();
 	values.forEach((value) => {
 		const offset = transformOffset(value.offset, region.size, mirror, rotation);
-		addPlan(plan, [destination[0] + offset[0], destination[1] + offset[1], destination[2] + offset[2]], value.block);
+		const position: Position = [destination[0] + offset[0], destination[1] + offset[1], destination[2] + offset[2]];
+		addPlan(plan, position, value.block);
+		destinationKeys.add(key(position));
 	});
-	return applyPlan(server, world, plan);
+	if (move) {
+		for (let y = region.min[1]; y <= region.max[1]; y++) for (let x = region.min[0]; x <= region.max[0]; x++) for (let z = region.min[2]; z <= region.max[2]; z++) {
+			const position: Position = [x, y, z];
+			if (!destinationKeys.has(key(position))) addPlan(plan, position, 0);
+		}
+	}
+	return applyPlan(server, world, plan, true, animationDelay(args));
 }
 
 async function stackRegion(server: Server, args: any) {
@@ -389,7 +423,7 @@ async function stackRegion(server: Server, args: any) {
 	const stride: Position = [direction[0] * region.size[0], direction[1] * region.size[1], direction[2] * region.size[2]];
 	const plan = new Map<string, Planned>();
 	for (let copy = 1; copy <= args.count; copy++) values.forEach((value) => addPlan(plan, [region.min[0] + value.offset[0] + stride[0] * copy, region.min[1] + value.offset[1] + stride[1] * copy, region.min[2] + value.offset[2] + stride[2] * copy], value.block));
-	return applyPlan(server, world, plan);
+	return applyPlan(server, world, plan, true, animationDelay(args));
 }
 
 async function undo(server: Server, args: any) {
@@ -423,19 +457,13 @@ async function execute(server: Server, settings: IWorldSettings, name: string, a
 	throw new Error(`Unknown worker WebMCP tool: ${name}`);
 }
 
-function enqueueOperation<T>(operation: () => Promise<T>) {
-	const result = operationQueue.then(operation);
-	operationQueue = result.then(() => undefined, () => undefined);
-	return result;
-}
-
 export async function handleMcpMessage(server: Server, socket: BaseSocket, packet: any, settings: IWorldSettings) {
 	if (packet.key !== channel || packet.version !== version) return false;
 	let request: any;
 	try {
 		request = JSON.parse(decoder.decode(packet.value instanceof Uint8Array ? packet.value : new Uint8Array(packet.value)));
 		if (request.kind !== 'request' || typeof request.id !== 'string' || typeof request.name !== 'string') throw new Error('Malformed WebMCP request');
-		const result = await enqueueOperation(() => execute(server, settings, request.name, request.args || {}));
+		const result = await execute(server, settings, request.name, request.args || {});
 		socket.send('PluginMessage', { key: channel, version, value: encoder.encode(JSON.stringify({ kind: 'response', id: request.id, result })) });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);

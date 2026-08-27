@@ -17,6 +17,10 @@ const transformProperties = {
 	rotation: { type: 'integer', enum: [0, 90, 180, 270], default: 0, description: 'Clockwise rotation in degrees around the y axis when viewed from above.' },
 };
 
+const animationProperties = {
+	delay_ms: { type: 'integer', minimum: 0, maximum: 100, default: 0, description: 'Delay in milliseconds between visible block changes. Use 0 for an instant edit. The total requested animation delay may not exceed 60000 milliseconds.' },
+};
+
 export type ToolDefinition = {
 	name: string;
 	title: string;
@@ -72,42 +76,42 @@ export function createToolDefinitions(blockNames: string[]): ToolDefinition[] {
 			name: 'fill_region',
 			title: 'Fill region',
 			description: 'Fills an inclusive box with a block. Solid fills every voxel, walls fills only four vertical sides, and shell fills all six faces. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, block, shape: { type: 'string', enum: ['solid', 'walls', 'shell'], default: 'solid' } }, required: [...boxRequired, 'block'], additionalProperties: false },
+			inputSchema: { type: 'object', properties: { ...boxProperties, block, shape: { type: 'string', enum: ['solid', 'walls', 'shell'], default: 'solid' }, ...animationProperties }, required: [...boxRequired, 'block'], additionalProperties: false },
 			readOnly: false,
 		},
 		{
 			name: 'replace_blocks',
 			title: 'Replace blocks',
 			description: 'Replaces every occurrence of one block with another inside an inclusive box. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, from_block: block, to_block: block }, required: [...boxRequired, 'from_block', 'to_block'], additionalProperties: false },
+			inputSchema: { type: 'object', properties: { ...boxProperties, from_block: block, to_block: block, ...animationProperties }, required: [...boxRequired, 'from_block', 'to_block'], additionalProperties: false },
 			readOnly: false,
 		},
 		{
 			name: 'set_blocks',
 			title: 'Set explicit blocks',
 			description: 'Sets up to 2048 explicit voxel positions in one atomic editing operation. Use for stairs, roofs, arches, diagonals, and other geometry boxes express poorly. Later duplicate positions win. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { blocks: { type: 'array', minItems: 1, maxItems: 2048, items: { type: 'object', properties: { position: point, block }, required: ['position', 'block'], additionalProperties: false } } }, required: ['blocks'], additionalProperties: false },
+			inputSchema: { type: 'object', properties: { blocks: { type: 'array', minItems: 1, maxItems: 2048, items: { type: 'object', properties: { position: point, block }, required: ['position', 'block'], additionalProperties: false } }, ...animationProperties }, required: ['blocks'], additionalProperties: false },
 			readOnly: false,
 		},
 		{
 			name: 'copy_region',
 			title: 'Copy region',
 			description: 'Copies an inclusive source box, including air, with optional mirroring and clockwise y-axis rotation. Destination is the minimum corner of the transformed output box. The source is snapshotted first, so overlap is safe. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Minimum corner of the transformed output box [x, y, z].' }, ...transformProperties }, required: [...boxRequired, 'destination'], additionalProperties: false },
+			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Minimum corner of the transformed output box [x, y, z].' }, ...transformProperties, ...animationProperties }, required: [...boxRequired, 'destination'], additionalProperties: false },
 			readOnly: false,
 		},
 		{
 			name: 'move_region',
 			title: 'Move region',
 			description: 'Moves an inclusive source box, including air, with optional mirroring and clockwise y-axis rotation, then clears non-overlapping source voxels to air. Destination is the minimum corner of the transformed output box. Overlap is safe. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Minimum corner of the transformed output box [x, y, z].' }, ...transformProperties }, required: [...boxRequired, 'destination'], additionalProperties: false },
+			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Minimum corner of the transformed output box [x, y, z].' }, ...transformProperties, ...animationProperties }, required: [...boxRequired, 'destination'], additionalProperties: false },
 			readOnly: false,
 		},
 		{
 			name: 'stack_region',
 			title: 'Stack region',
 			description: 'Repeats an inclusive source box, including air, directly adjacent to itself count times in a cardinal direction. Count excludes the original. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, count: { type: 'integer', minimum: 1, maximum: 16 }, direction: { type: 'string', enum: ['up', 'down', 'north', 'south', 'east', 'west'] } }, required: [...boxRequired, 'count', 'direction'], additionalProperties: false },
+			inputSchema: { type: 'object', properties: { ...boxProperties, count: { type: 'integer', minimum: 1, maximum: 16 }, direction: { type: 'string', enum: ['up', 'down', 'north', 'south', 'east', 'west'] }, ...animationProperties }, required: [...boxRequired, 'count', 'direction'], additionalProperties: false },
 			readOnly: false,
 		},
 		{

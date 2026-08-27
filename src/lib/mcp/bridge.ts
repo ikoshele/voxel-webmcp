@@ -53,7 +53,7 @@ export function callWorkerTool(name: string, args: object = {}, signal?: AbortSi
 		const timer = setTimeout(() => {
 			pending.delete(id);
 			reject(new Error(`WebMCP tool ${name} timed out`));
-		}, 30000);
+		}, 90000);
 		pending.set(id, { resolve, reject, timer });
 		if (signal != undefined) {
 			signal.addEventListener('abort', () => {
