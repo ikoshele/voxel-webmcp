@@ -12,8 +12,9 @@ Order that matters:
 2. `constructScreen(noa)` — creates the Babylon GUI layers.
 3. `setNoa(noa)` — publishes the engine into `values.ts` for every module that imports it.
 4. `createInflateWorker()` — awaited before the local connection.
-5. Load or create the fixed IndexedDB world `webmcp-world`, spawn its server worker, and call
-   `setupConnection`. There is no menu or URL-based connection routing.
+5. Consume a pending session reset flag, load or create the fixed IndexedDB world
+   `webmcp-world`, spawn its server worker, and call `setupConnection`. There is no menu or
+   URL-based connection routing.
 
 ## Global mutable state
 
@@ -63,6 +64,5 @@ in `src/gui/mobile.ts`.
 
 1. `noa.ents.getPhysics(noa.playerEntity).body.airDrag = 9999` is set while the local worker
    starts and again on disconnect. The spawn handler resets it to `-1`.
-2. A `beforeunload` handler blocks tab close with a confirm prompt.
-3. Before joining the world, a `beforeRender` handler spins `noa.camera.heading`. It stops once
+2. Before joining the world, a `beforeRender` handler spins `noa.camera.heading`. It stops once
    `serverSettings.ingame` is true.

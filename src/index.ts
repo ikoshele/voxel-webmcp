@@ -29,11 +29,10 @@ import { createInflateWorker, setupWorld } from './lib/gameplay/world';
 import { setupToasts } from './gui/parts/toastMessage';
 import { PopupGUI } from './gui/parts/miniPopupHelper';
 import { createSingleplayerServer } from './lib/singleplayer/setup';
-
-const worldName = 'webmcp-world';
+import { consumeWorldReset, localWorldName } from './lib/singleplayer/worldLifecycle';
 
 async function getLocalWorldSettings(): Promise<IWorldSettings> {
-	const savedWorld = await getWorld(worldName);
+	const savedWorld = await getWorld(localWorldName);
 	if (savedWorld != undefined) return savedWorld.settings;
 	const settings: IWorldSettings = {
 		gamemode: 'creative',
@@ -46,7 +45,7 @@ async function getLocalWorldSettings(): Promise<IWorldSettings> {
 		icon: 'voxelsrv',
 		displayName: 'WebMCP World',
 	};
-	await saveWorld(worldName, {}, settings);
+	await saveWorld(localWorldName, {}, settings);
 	return settings;
 }
 
@@ -68,11 +67,6 @@ getSettings().then(async (data: IGameSettings) => {
 	canvas.onwheel = function (event) {
 		event.preventDefault();
 	};
-
-	window.addEventListener('beforeunload', function (e) {
-		e.preventDefault();
-		e.returnValue = '';
-	});
 
 	canvas.addEventListener('keydown', (e) => {
 		if (e.key == ' ') {
@@ -162,8 +156,9 @@ getSettings().then(async (data: IGameSettings) => {
 		});
 	}
 
+	await consumeWorldReset();
 	const worldSettings = await getLocalWorldSettings();
 	loading.dispose();
-	const socket = createSingleplayerServer(worldName, worldSettings, true);
+	const socket = createSingleplayerServer(localWorldName, worldSettings, true);
 	setupConnection(noa, socket);
 });

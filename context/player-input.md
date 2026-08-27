@@ -31,11 +31,16 @@ pointer lock. Arrow left/right change heading and arrow up/down change pitch. A 
 in `gameSettings.controls`, so browser agents can rely on the arrow keys in every session. The
 handler is disabled while chat, an inventory, crafting, or a chest is open.
 
-Every handler starts with `if (!serverSettings.ingame ...) return;` and most also call
-`testIsIn(noa)`, which checks pointer lock state.
+Every handler starts with `if (!serverSettings.ingame ...) return;`. World interaction remains
+available without pointer lock while no inventory, crafting, chest, or chat GUI is open. This
+supports embedded agent browsers that cannot retain relative mouse capture.
 
 Pointer lock is requested only from a canvas click or an explicit input action because browsers
 reject attempts made during bootstrap without a user gesture.
+
+Window blur and document hiding clear the input library's private key and binding counters as
+well as its public boolean state. This prevents missed mouse-up and key-up events from leaving
+building or movement bindings permanently pressed after returning to the page.
 
 | Binding | Action |
 | --- | --- |
@@ -70,7 +75,7 @@ adds gamepad input, enabled by `gameSettings.gamepad`.
 1. `noa.targetedBlock` is `undefined`, not `null`, when nothing is targeted.
 2. `blockTargetIdCheck` is replaced in `controls.ts` to make fluids non-targetable. Raycasts
    pass through water.
-3. `testIsIn(noa)` returns true when pointer lock is unsupported, so handlers can fire in
-   contexts where the pointer is not locked.
+3. `testIsIn(noa)` deliberately allows world interaction without pointer lock but rejects it
+   while an interactive GUI is open.
 4. Hotbar wrap-around is hardcoded to 8 in one branch (`pickedID = 8`) while the upper bound
    uses `gameSettings.hotbarsize`. Non-default hotbar sizes wrap incorrectly.

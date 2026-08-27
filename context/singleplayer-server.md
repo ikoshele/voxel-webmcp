@@ -8,7 +8,15 @@ authoritative world.
 The application always opens the IndexedDB world named `webmcp-world`. On first launch,
 `src/index.ts` creates it in creative mode with the normal generator, a random positive
 31-bit seed, and `worldsize: 16`, matching the old UI's 1024×1024 preset. Later launches reuse
-the saved settings and voxel data.
+the saved settings and voxel data. The inventory's `New random world` action requires two
+clicks, stores a session reset flag, and reloads the page. Bootstrap consumes the flag, deletes
+both IndexedDB world records, and creates a fresh world with a new seed.
+
+The inventory's `Save world` action sends `SingleplayerAutoSave`. Patched chunk saves write
+synchronously into memfs before the worker snapshots `vol.toJSON()` and emits `ServerSave`;
+`src/lib/singleplayer/setup.ts` serializes snapshots in arrival order and persists them to
+IndexedDB. The same request runs automatically every `gameSettings.autoSaveInterval` seconds
+while the local server is active.
 
 `src/lib/singleplayer/setup.ts` → `createSingleplayerServer(worldname, settings, autoconnect)`:
 

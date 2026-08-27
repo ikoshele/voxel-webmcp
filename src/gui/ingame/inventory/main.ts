@@ -7,6 +7,8 @@ import { defaultValues } from '../../../values';
 import { getBaseInventory } from './base';
 import { Engine } from 'noa-engine';
 import { BaseSocket } from '../../../socket';
+import { createItem } from '../../parts/menu';
+import { requestWorldReset } from '../../../lib/singleplayer/worldLifecycle';
 
 export let inventory: GUI.Rectangle = null;
 
@@ -41,6 +43,57 @@ export function openInventory(noa: Engine, socket: BaseSocket) {
 
 	inventory.addControl(base.inventory);
 	inventory.addControl(base.tempslot.container);
+
+	const saveWorld = createItem(110, 8, 18);
+	saveWorld.item.zIndex = 80;
+	saveWorld.item.top = `${108 * scale}px`;
+	saveWorld.item.background = '#24613ddd';
+	saveWorld.item.thickness = 1;
+	saveWorld.item.color = '#3c9b63';
+	saveWorld.text.text = [{ text: 'Save world', color: 'white', font: 'Lato' }];
+	inventory.addControl(saveWorld.item);
+
+	let saveTextTimer: ReturnType<typeof setTimeout> = null;
+	const saveStarted = () => {
+		saveWorld.text.text = [{ text: 'Saving...', color: 'white', font: 'Lato' }];
+	};
+	const saveDone = () => {
+		saveWorld.text.text = [{ text: 'Saved', color: 'white', font: 'Lato' }];
+		if (saveTextTimer != null) clearTimeout(saveTextTimer);
+		saveTextTimer = setTimeout(() => {
+			saveWorld.text.text = [{ text: 'Save world', color: 'white', font: 'Lato' }];
+		}, 2000);
+	};
+	socket.on('ServerSavingStarted', saveStarted);
+	socket.on('ServerSavingDone', saveDone);
+	saveWorld.item.onPointerClickObservable.add(() => {
+		saveStarted();
+		socket.send('SingleplayerAutoSave', {});
+	});
+
+	const resetWorld = createItem(110, 8, 18);
+	resetWorld.item.zIndex = 80;
+	resetWorld.item.top = `${132 * scale}px`;
+	resetWorld.item.background = '#7a2020dd';
+	resetWorld.item.thickness = 1;
+	resetWorld.item.color = '#b84444';
+	resetWorld.text.text = [{ text: 'New random world', color: 'white', font: 'Lato' }];
+	inventory.addControl(resetWorld.item);
+
+	let resetArmed = false;
+	let resetTimer: ReturnType<typeof setTimeout> = null;
+	resetWorld.item.onPointerClickObservable.add(() => {
+		if (resetArmed) {
+			requestWorldReset();
+			return;
+		}
+		resetArmed = true;
+		resetWorld.text.text = [{ text: 'Click again: delete world', color: 'white', font: 'Lato' }];
+		resetTimer = setTimeout(() => {
+			resetArmed = false;
+			resetWorld.text.text = [{ text: 'New random world', color: 'white', font: 'Lato' }];
+		}, 4000);
+	});
 
 	const craftingSlots: Array<ItemSlot> = new Array(5);
 
@@ -185,6 +238,8 @@ export function openInventory(noa: Engine, socket: BaseSocket) {
 
 		inventoryTexture.width = `${180 * scale2}px`;
 		inventoryTexture.height = `${176 * scale2}px`;
+		saveWorld.item.top = `${108 * scale2}px`;
+		resetWorld.item.top = `${132 * scale2}px`;
 		armor.top = `${-39 * scale2}px`;
 		armor.left = `${-72 * scale2}px`;
 		armor.height = `${72 * scale2}px`;
@@ -231,6 +286,10 @@ export function openInventory(noa: Engine, socket: BaseSocket) {
 	event.on('scale-change', scaleEvent);
 
 	inventory.onDisposeObservable.add(() => {
+		socket.off('ServerSavingStarted', saveStarted);
+		socket.off('ServerSavingDone', saveDone);
+		if (saveTextTimer != null) clearTimeout(saveTextTimer);
+		if (resetTimer != null) clearTimeout(resetTimer);
 		event.off('scale-change', scaleEvent);
 		noa.off('tick', update);
 	});

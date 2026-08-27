@@ -57,6 +57,10 @@ export async function saveWorld(name: string, data: object, settings: IWorldSett
 	await db.worlddata.add({name, data}, name)
 }
 
+export async function deleteWorld(name: string) {
+	await Promise.all([db.world.delete(name), db.worlddata.delete(name)]);
+}
+
 export async function getWorld(name: string): Promise<IWorld> {
 	const world = db.world.where('name').equals(name).first();
 	return world;

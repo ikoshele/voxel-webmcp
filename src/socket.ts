@@ -29,6 +29,11 @@ export class BaseSocket {
 		if (this.listeners[type] != undefined) this.listeners[type].push(func);
 		else this.listeners[type] = [func];
 	}
+
+	off(type: string, func: Function) {
+		if (this.listeners[type] == undefined) return;
+		this.listeners[type] = this.listeners[type].filter((listener) => listener != func);
+	}
 }
 
 export class VirtualSocket extends BaseSocket {
@@ -70,5 +75,9 @@ export class VirtualSocket extends BaseSocket {
 
 	on(type: string, func) {
 		this.toClient.on(type, func);
+	}
+
+	off(type: string, func) {
+		this.toClient.off(type, func);
 	}
 }

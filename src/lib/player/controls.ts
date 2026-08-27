@@ -13,7 +13,6 @@ import { ActionInventoryClick, ActionInventoryClose } from 'voxelsrv-protocol/js
 import type { Engine } from 'noa-engine';
 import { closeCrafting, craftingInventory } from '../../gui/ingame/inventory/crafting';
 import { chestInventory, closeChest } from '../../gui/ingame/inventory/chest';
-import { isMobile } from 'mobile-device-detect';
 import screenshot from 'canvas-screenshot';
 
 const keyboardLookKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
@@ -74,8 +73,21 @@ function setupKeyboardLook(noa: Engine) {
 	});
 }
 
+function releaseInputState(noa: Engine) {
+	const inputs: any = noa.inputs;
+	Object.keys(inputs._keyStates || {}).forEach((key) => (inputs._keyStates[key] = false));
+	Object.keys(inputs._bindPressCounts || {}).forEach((binding) => (inputs._bindPressCounts[binding] = 0));
+	Object.keys(inputs.state).forEach((binding) => {
+		if (typeof inputs.state[binding] == 'boolean') inputs.state[binding] = false;
+	});
+}
+
 export function setupControls(noa: any) {
 	setupKeyboardLook(noa);
+	window.addEventListener('blur', () => releaseInputState(noa));
+	document.addEventListener('visibilitychange', () => {
+		if (document.hidden) releaseInputState(noa);
+	});
 	// Helpers
 	const eid = noa.playerEntity;
 	const scene = noa.rendering.getScene();
@@ -140,7 +152,7 @@ export function setupControls(noa: any) {
 	// on left mouse, set targeted block to be air
 
 	noa.inputs.down.on('fire', async function () {
-		if (!serverSettings.ingame || !testIsIn(noa)) return;
+		if (!serverSettings.ingame || !testIsIn()) return;
 
 		const entClick = castRay();
 		if (!!entClick) {
@@ -158,14 +170,14 @@ export function setupControls(noa: any) {
 	});
 
 	noa.inputs.up.on('fire', function () {
-		if (!serverSettings.ingame || !testIsIn(noa)) return;
+		if (!serverSettings.ingame || !testIsIn()) return;
 		//stopBreakingBlock()
 	});
 
 	// place block on alt-fire (RMB/E)
 
 	noa.inputs.down.on('alt-fire', function () {
-		if (!serverSettings.ingame || !testIsIn(noa)) return;
+		if (!serverSettings.ingame || !testIsIn()) return;
 		const entClick = castRay();
 		if (!!entClick) {
 			socketSend('ActionClickEntity', { type: 'right', uuid: entClick[0], distance: entClick[1] });
@@ -187,7 +199,7 @@ export function setupControls(noa: any) {
 	// pick block on middle fire (MMB/Q)
 
 	noa.inputs.down.on('mid-fire', function () {
-		if (!serverSettings.ingame || !testIsIn(noa)) return;
+		if (!serverSettings.ingame || !testIsIn()) return;
 		if (noa.targetedBlock && noa.targetedBlock.blockID != 0) {
 			const item = blocks[blockIDmap[noa.targetedBlock.blockID]].id;
 			const slot = inventoryHasItem(item, 1);
@@ -314,7 +326,7 @@ export function setupControls(noa: any) {
 	// Zooms
 
 	noa.inputs.down.on('zoom', function () {
-		if (chatInput == undefined || chatInput.isVisible || !testIsIn(noa)) return;
+		if (chatInput == undefined || chatInput.isVisible || !testIsIn()) return;
 
 		scene.cameras[0].fov = 0.4;
 	});
@@ -322,7 +334,7 @@ export function setupControls(noa: any) {
 	// Restores normal fov
 
 	noa.inputs.up.on('zoom', function () {
-		if (chatInput == undefined || chatInput.isVisible || !testIsIn(noa)) return;
+		if (chatInput == undefined || chatInput.isVisible || !testIsIn()) return;
 
 		scene.cameras[0].fov = (gameSettings.fov * Math.PI) / 180;
 	});
@@ -341,7 +353,7 @@ export function setupControls(noa: any) {
 	let hidden = false;
 
 	noa.inputs.up.on('hide', function () {
-		if ((chatInput != undefined && chatInput.isVisible) || !testIsIn(noa)) return;
+		if ((chatInput != undefined && chatInput.isVisible) || !testIsIn()) return;
 		hidden = !hidden;
 
 		hotbar.isVisible = !hidden;
@@ -352,7 +364,7 @@ export function setupControls(noa: any) {
 	// Scroll throgh hotbar. Also allows swimming
 
 	noa.on('tick', async function () {
-		if (!serverSettings.ingame || !testIsIn(noa)) return;
+		if (!serverSettings.ingame || !testIsIn()) return;
 		const scroll = noa.inputs.state.scrolly;
 		if (scroll !== 0) {
 			let pickedID = noa.ents.getState(eid, 'inventory').selected;
@@ -398,8 +410,7 @@ export function rebindControls(noa: Engine, settings: { [i: string]: string }) {
 	}
 }
 
-function testIsIn(noa: Engine): boolean {
-	return (noa.ignorePointerLock || noa.container.hasPointerLock ||
-        !noa.container.supportsPointerLock ||
-        (noa._dragOutsideLock && isMobile))
-	}
+function testIsIn(): boolean {
+	if (inventory || craftingInventory || chestInventory || chatInput?.isVisible) return false;
+	return serverSettings.ingame;
+}
