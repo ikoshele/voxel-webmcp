@@ -13,6 +13,8 @@ export function createSingleplayerServer(worldname: string, settings: IWorldSett
 
 	const server = new Worker('./server.js');
 	socket.attachedData = server;
+	let saveQueue = Promise.resolve();
+	let autoSaveTimer: ReturnType<typeof setInterval> = null;
 	getWorldData(worldname).then((world) => {
 		server.postMessage({ type: 'SingleplayerViewDistance', data: { value: gameSettings.viewDistance } });
 		server.postMessage({ type: 'SingleplayerWorldData', data: world != undefined ? world.data : {} });
@@ -25,6 +27,7 @@ export function createSingleplayerServer(worldname: string, settings: IWorldSett
 
 		switch (type) {
 			case 'ServerStopped':
+				if (autoSaveTimer != null) clearInterval(autoSaveTimer);
 				saveWorld(worldname, data.save, data.settings).then(() => {
 					console.log('Saved!');
 					server.terminate();
@@ -32,10 +35,10 @@ export function createSingleplayerServer(worldname: string, settings: IWorldSett
 				});
 				toClient.emit('ServerStopped', {});
 				break;
-			case 'ServerAutoSave':
+			case 'ServerSave':
 				toClient.emit('ServerSavingStarted', {});
-				console.log('Starting saving...');
-				saveWorld(worldname, data.save, data.settings).then(() => {
+				console.log(`Starting saving ${Object.keys(data.save).length} files...`);
+				saveQueue = saveQueue.then(() => saveWorld(worldname, data.save, data.settings)).then(() => {
 					console.log('Saved!');
 					toClient.emit('ServerSavingDone', {});
 				});
@@ -43,6 +46,11 @@ export function createSingleplayerServer(worldname: string, settings: IWorldSett
 			case 'ServerStarted':
 				if (autoconnect) {
 					server.postMessage({ type: 'SingleplayerConnectPlayer', data: { } });
+				}
+				if (gameSettings.autoSaveInterval > 0) {
+					autoSaveTimer = setInterval(() => {
+						server.postMessage({ type: 'SingleplayerAutoSave', data: {} });
+					}, gameSettings.autoSaveInterval * 1000);
 				}
 				break;
 		}

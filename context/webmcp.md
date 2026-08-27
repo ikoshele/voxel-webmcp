@@ -1,6 +1,6 @@
 # WebMCP layer
 
-The ten-tool first pass is implemented for singleplayer. This document defines its behavior,
+The eleven-tool first pass is implemented for singleplayer. This document defines its behavior,
 constraints, and the scenario testing still required before the hackathon demo.
 
 ## What WebMCP is
@@ -67,6 +67,10 @@ the read tools return.
     capped per-session stack. `undo(count = 1)` walks back that many steps. Rebuilding a house
     with five `fill` calls therefore takes `undo(5)` to remove entirely. The agent most likely
     already knows this semantics from WorldEdit's ubiquity, which is the point of copying it.
+13. **Stable operating guidance is an explicit read tool.** `get_building_guide` explains the
+    voxel sandbox, the agent's operator role, startup workflow, tool selection, construction
+    principles, material usage, player traversal, world rules, and editing limits. It is local
+    to the main thread because its result does not depend on mutable world state.
 
 ## Consequences for the code
 
@@ -165,13 +169,14 @@ agent working with small numbers without the engine holding state.
 
 ## Tool surface
 
-Ten tools. WorldEdit is the reference for the *language* of geometric primitives, not for its
+Eleven tools. WorldEdit is the reference for the *language* of geometric primitives, not for its
 API or its stateful UX. Everything is stateless: no selection, no clipboard, no region ids.
 
 ### Read
 
 | Tool | Returns |
 | --- | --- |
+| `get_building_guide` | Stable agent role, workflow, tool-selection, material, and traversal guidance |
 | `get_world_info` | World bounds, generator, gamemode, current `world_revision` |
 | `get_player` | Player pose and what they are looking at |
 | `scan_region` | Region geometry in the requested mode |
@@ -235,10 +240,10 @@ schema cost is accepted. No `list_block_types` tool.
 Material characteristics are centralized in `get_world_info.block_catalog`, not repeated in
 write schemas. The catalog is generated from the authoritative server registry and gives each
 block a human label, concise appearance, texture names, and traits such as solid, transparent,
-fluid, or plant. The persistent `get_world_info` tool description tells the agent to call it
-before planning a build. WebMCP has no page-level system-instruction primitive, so this read
-tool is the single source of material context without permanently placing the full catalog in
-every agent turn.
+fluid, or plant. `get_building_guide` supplies stable material-selection and traversal rules;
+`get_world_info` supplies the dynamic catalog and world bounds. WebMCP has no page-level
+system-instruction primitive, so the guide is an explicit read tool rather than a hidden global
+prompt or duplicated text in every editing-tool description.
 
 Real names are short and unprefixed: `stone`, `dirt`, `grass`, `cobblestone`, `log`, `sand`,
 `leaves`, `water`, `bricks`, `planks`, `glass`, `gravel`, `snow`, `stonebrick`. Not

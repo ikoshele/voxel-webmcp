@@ -10,11 +10,25 @@ browser, reads the surrounding voxel geometry and edits it in response to natura
 The agent operates on voxel geometry, not on game objects. The world has no notion of a house,
 a wall or a room. Those exist only in the model's reasoning.
 
-Status: the Vite-based singleplayer game exposes ten WebMCP tools for compact world inspection,
-geometry editing, material discovery, and WorldEdit-style undo. Browser-agent scenario testing
-is in progress.
+Status: the Vite-based singleplayer game exposes eleven WebMCP tools for agent guidance,
+compact world inspection, geometry editing, material discovery, and WorldEdit-style undo.
+Browser-agent scenario testing is in progress.
 
-## Running
+## Running with Docker
+
+Docker is the shortest path if you only want to run the game and do not want to install Node.js
+or npm:
+
+```bash
+docker build -t voxel-webmcp .
+docker run --rm -p 8080:80 voxel-webmcp
+```
+
+Open <http://localhost:8080/>. The world and its saves are stored in the browser's IndexedDB,
+not in the container. Rebuilding or removing the container does not remove that browser's save,
+but another browser profile or device will have a separate world.
+
+## Local development
 
 ```bash
 nvm install 20.19.0
@@ -30,8 +44,8 @@ npm run build    # production build into dist/
 `npm run build:workers` must run before a bare `vite` invocation — the npm scripts do it for
 you. See `context/build.md`.
 
-After entering a singleplayer world, the same executors exposed to a browser agent are available
-through a diagnostic console shim:
+The app opens its persistent local world immediately. The same executors exposed to a browser
+agent are available through a diagnostic console shim:
 
 ```javascript
 window.__mcp.list()
@@ -62,11 +76,16 @@ maintained. Its release history is in `CHANGELOG.md`.
 ## Assets
 
 - Textures: [Pixel Perfection Community Edition](https://github.com/Athemis/PixelPerfectionCE)
-  by XSSheep and others
-- Models by [ewanhowell5195](https://www.curseforge.com/minecraft/texture-packs/template-cem)
-- Minecraft Classic protocol support based on work by
-  [rom1504 and mhsjlw](https://github.com/mhsjlw/minecraft-classic-protocol)
+  by XSSheep and contributors, licensed under CC BY-SA 4.0
+- Fonts retain the licences shipped beside them in `public/fonts/`
+- The inherited player models require a provenance decision before public distribution
 
-## Licence
+## Licensing
 
-MIT. See `LICENCE`.
+The project software is available under the MIT License; the original VoxelSrv copyright notice
+is retained. Third-party assets and dependencies keep their own licences and are not relicensed
+under MIT. See `LICENCE` and `THIRD_PARTY_NOTICES.md` before redistributing the repository or a
+production build.
+
+This is an unofficial project and is not affiliated with or endorsed by Mojang Studios,
+Microsoft, the VoxelSrv authors, or the third-party asset authors.

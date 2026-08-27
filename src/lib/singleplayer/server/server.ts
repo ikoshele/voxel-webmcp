@@ -129,7 +129,7 @@ self.onmessage = async (e) => {
 			}
 			break;
 		case 'SingleplayerAutoSave':
-			Object.values(server.worlds.worlds).forEach((w) => w.saveAll());
+			await Promise.all(Object.values(server.worlds.worlds).map((world) => world.saveAll()));
 			socket.send('ServerSave', { save: vol.toJSON(), settings: worldSettings });
 			break;
 		case 'SingleplayerMessage':

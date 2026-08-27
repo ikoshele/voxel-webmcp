@@ -1,85 +1,62 @@
 # Networking
 
-Every game session, singleplayer included, runs over a socket abstraction. There is no
-"local mode" that bypasses it.
+The application is singleplayer-only, but the browser client still talks to the authoritative
+server through a socket abstraction. The server runs in a Web Worker rather than on a network
+host.
 
 ## Socket classes
 
-`src/socket.ts`. All extend `BaseSocket`, which holds a `listeners` map and an `emit`/`on`
-pair.
+`src/socket.ts` contains `BaseSocket` and `VirtualSocket`. `VirtualSocket` connects two
+`EventEmitter`s to the server worker. Packets remain plain objects and never use protobuf
+serialization on this path.
 
-| Class | Transport | Serialization |
-| --- | --- | --- |
-| `VirtualSocket` | Two `EventEmitter`s bridged to a Web Worker via `postMessage` | None — plain objects |
-| `MPSocket` | `WebSocket` | protobuf via `protocol.js` worker |
-| `ProxySocket` | `WebSocket` to a proxy, wrapped by `ProxyHandler` | protobuf, double-wrapped |
-
-`VirtualSocket.send` emits twice: once as `(type, data)` and once as `('packet', type, data)`.
-`src/lib/singleplayer/setup.ts` listens on `'packet'` and forwards to the worker.
+`VirtualSocket.send` emits both `(type, data)` and `('packet', type, data)`.
+`src/lib/singleplayer/setup.ts` listens on `packet` and forwards it to the worker through
+`postMessage`. Worker responses are re-emitted on the client-side emitter.
 
 ## Protocol
 
-`voxelsrv-protocol` (GitHub `VoxelSrv/protocol#v3`). Client→server packets are `Action*` and
-`Login*`; server→client are `Player*`, `World*`, `Entity*`, `Chat*`, `Registry*`,
+`voxelsrv-protocol` supplies packet names, TypeScript interfaces, registry definitions, and
+constants shared with `voxelsrv-server`. Client→server packets are `Action*` and `Login*`;
+server→client packets are `Player*`, `World*`, `Entity*`, `Chat*`, `Registry*`, and
 `Environment*`.
-
-`protocol.js` (a `threads.js` worker) does protobuf encoding. It is only used by `MPSocket` and
-`ProxySocket`. Singleplayer never touches it, but the worker is still spawned at boot and
-awaited in `index.ts`.
 
 ### PluginMessage
 
-`IPluginMessage` exists in both protocol directions. `src/lib/mcp/bridge.ts` and
+`IPluginMessage` exists in both directions. `src/lib/mcp/bridge.ts` and
 `src/lib/singleplayer/server/mcpHandler.ts` use key `voxel-webmcp`, version `1`, a JSON byte
-payload and a correlation id for WebMCP calls. Other plugin-message keys continue through the
-normal server listener path. No protocol regeneration is required.
+payload, and a correlation id for WebMCP calls. Other plugin-message keys continue through the
+normal server listener path.
 
 ## Packet handling
 
-`src/lib/gameplay/connect.ts` is the single sink for every server→client packet. 670 lines;
-all handlers are registered inside `setupConnection`.
+`src/lib/gameplay/connect.ts` registers every server→client handler inside `setupConnection`.
 
-Handlers worth knowing:
+| Packet | Effect |
+| --- | --- |
+| `WorldBlockUpdate` | `noa.setBlock` plus `chunkSetBlock` |
+| `WorldMultiBlockUpdate` | Same, looped over a block list |
+| `WorldChunkLoad` | `setChunk` in `world.ts`, inflate if compressed |
+| `RegistryUpdate` | `registerBlocks` and `registerItems` |
+| `PlayerEntity` | Creates the local player entity |
+| `PlayerKick` | Tears down the local session |
 
-| Packet | Effect | Location |
-| --- | --- | --- |
-| `WorldBlockUpdate` | `noa.setBlock` + `chunkSetBlock` | `connect.ts:412` |
-| `WorldMultiBlockUpdate` | Same, looped over a block list | `connect.ts:405` |
-| `WorldChunkLoad` | `setChunk` in `world.ts`, inflate if compressed | — |
-| `RegistryUpdate` | `registerBlocks` / `registerItems` | — |
-| `PlayerEntity` | Creates the local player entity | — |
-| `PlayerKick` | Tears down and returns to the menu | — |
-
-`WorldMultiBlockUpdate` is the existing bulk-write channel. Region edits should use it rather
-than emitting thousands of single updates.
+`WorldMultiBlockUpdate` is the bulk-write channel. Region edits use it rather than emitting
+thousands of single updates.
 
 `socketSend(type, data)` is the exported client→server helper; it no-ops when `socket` is null.
 
 ## Connection lifecycle
 
-`connect(noa, address)` picks a socket class from the server entry, then `setupConnection`
-registers handlers and drives the login handshake. `disconnect()` closes the socket, deletes
-entities, destroys GUIs, clears the chunk store and returns to the main menu. In singleplayer
-it first sends `SingleplayerLeave` and waits for the world to save.
+`src/index.ts` creates one `VirtualSocket` through `createSingleplayerServer`, then
+`setupConnection` registers handlers and drives the local login handshake. The worker accepts
+the generated local nickname without external authentication. `disconnect()` sends
+`SingleplayerLeave`, waits for the worker to save the world, and tears down the session.
 
-## Multiplayer: out of scope
-
-The project targets singleplayer only. Multiplayer and the Minecraft Classic proxy are still
-wired but not a target for the WebMCP work.
-
-Files involved: `src/socket.ts` (`MPSocket`, `ProxySocket`), `src/lib/gameplay/proxyHandler.ts`,
-`src/gui/menu/multiplayer.ts`, `src/gui/menu/login.ts`, `src/protocolWrappers/0.30c/**`, and
-the server-list functions in `src/values.ts` (`fetchServers`, `getServerList`,
-`heartbeatServer`, `proxyServer`).
-
-Recommended sequencing: hide the menu entry points now, delete the code after the WebMCP tools
-work. Deleting first is a wide refactor across `connect.ts` and `socket.ts` with no payoff for
-the demo.
+There are no WebSocket, remote server list, login, account, multiplayer, or Minecraft Classic
+proxy paths in the application.
 
 ## Traps
 
-1. Removing the `protocol.js` worker breaks boot even in singleplayer — `index.ts` awaits it
-   unconditionally.
-2. `VirtualSocket.on` registers on `toClient`, not on `BaseSocket.listeners`. It does not share
-   the parent's listener map.
-3. Socket errors surface as a fake `PlayerKick` packet delayed 500 ms, not as an exception.
+1. `VirtualSocket.on` registers on `toClient`, not on `BaseSocket.listeners`.
+2. Socket errors surface as a fake `PlayerKick` packet delayed 500 ms, not as an exception.

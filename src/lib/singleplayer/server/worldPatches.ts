@@ -18,9 +18,7 @@ export default function () {
 			});
 			const buffer = format.chunk.encode(message).finish();
 			const data = pako.deflate(buffer);
-			fs.writeFile(this.chunkFolder + '/' + idS + '.chk', btoa(String.fromCharCode.apply(null, data)), function (err) {
-				if (err) this._server.log.console.error('Cant save chunk ' + id + '! Reason: ' + err);
-			});
+			fs.writeFileSync(this.chunkFolder + '/' + idS + '.chk', btoa(String.fromCharCode.apply(null, data)));
 		}
 	};
 

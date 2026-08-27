@@ -1,0 +1,11 @@
+.git
+.idea
+.jbeval
+.vscode
+.npmrc
+node_modules
+dist
+public/inflate.js
+public/normalWorker.js
+public/server.js
+npm-debug.log*
