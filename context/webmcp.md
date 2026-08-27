@@ -69,9 +69,9 @@ the read tools return.
     already knows this semantics from WorldEdit's ubiquity, which is the point of copying it.
 13. **Stable operating guidance is an explicit read tool.** `get_building_guide` explains the
     voxel sandbox, the agent's operator role, startup workflow, tool selection, construction
-    principles, material usage, player traversal, fast versus animated build presentation,
-    world rules, and editing limits. It is local to the main thread because its result does not
-    depend on mutable world state.
+    principles, material usage, player traversal, parallel execution and undo ordering, fast
+    versus animated build presentation, world rules, and editing limits. It is local to the
+    main thread because its result does not depend on mutable world state.
 
 ## Consequences for the code
 

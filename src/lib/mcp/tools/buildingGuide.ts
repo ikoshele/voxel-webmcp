@@ -25,6 +25,11 @@ export function getBuildingGuide() {
 			'Re-scan important edited areas to verify the result.',
 			'Use undo if the result is incorrect.',
 		],
+		parallel_execution: {
+			allowed: 'Independent tools may be called in parallel; the server does not serialize WebMCP requests.',
+			dependencies: 'Await a tool result before starting work that depends on its output or modifies the same region.',
+			undo: 'Undo affects the most recently completed successful editing call. For parallel edits this is completion order, which may differ from invocation order.',
+		},
 		tool_selection: {
 			fill_region: 'Use for floors, foundations, boxes, walls, and shells.',
 			replace_blocks: 'Use to change a material without rebuilding existing geometry.',
@@ -32,7 +37,7 @@ export function getBuildingGuide() {
 			copy_region: 'Use to reuse repeated architectural elements with optional mirroring or rotation.',
 			move_region: 'Use to relocate existing geometry with optional mirroring or rotation.',
 			stack_region: 'Use to repeat floors, columns, walls, and patterns at a regular interval.',
-			undo: 'Use to roll back complete editing operations.',
+			undo: 'Use to roll back completed editing operations in reverse completion order.',
 		},
 		build_presentation: {
 			fast: 'Use delay_ms: 0 when speed matters or the user does not ask to watch the construction process.',
