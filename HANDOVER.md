@@ -11,9 +11,14 @@ behavior and limits. Delete this file after the browser console and agent scenar
 4. Run `await window.__mcp.call('get_world_info', {})` and inspect `block_catalog`.
 5. Run `await window.__mcp.call('get_player', {})`.
 6. Scan a known block with `await window.__mcp.call('scan_region', { from: [x,y,z], to: [x,y,z] })`.
-7. Place one reversible test block with `fill_region`, verify it is visible, then call `undo`.
-8. Verify `document.modelContext` discovers all ten tools in a WebMCP-capable browser.
-9. Run the second-floor, copied-window, basement, staircase, roof, and tower scenarios with an agent.
+7. Confirm `fill_region` rejects `mode: 'walls'`, then place a reversible test with
+   `shape: 'walls'`, verify it is hollow vertically, and call `undo`.
+8. Copy a small asymmetric region with `mirror: 'x'` and `rotation: 90`, verify orientation,
+   then rotate it in place with `move_region` and undo both calls.
+9. Start several tool calls without awaiting between them and confirm their results and world
+   revisions follow call order without overlapping edits.
+10. Verify `document.modelContext` discovers all ten tools in a WebMCP-capable browser.
+11. Run the second-floor, copied-window, basement, staircase, roof, and tower scenarios with an agent.
 
 ## Relevant paths
 
@@ -33,3 +38,4 @@ behavior and limits. Delete this file after the browser console and agent scenar
 4. Authoritative scans run in the worker, never through `noa.getBlock`.
 5. Undo state lives only in worker RAM and resets with the session.
 6. `window.__mcp` appears after `LoginSuccess`, only in singleplayer.
+7. All valid WebMCP requests are serialized in the worker, including reads.

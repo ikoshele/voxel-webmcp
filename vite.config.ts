@@ -13,7 +13,7 @@ export default defineConfig({
 	build: {
 		outDir: 'dist',
 		emptyOutDir: true,
-		target: 'es2018',
+		target: 'es2020',
 		commonjsOptions: sharedCommonjs,
 		rollupOptions: {
 			output: {

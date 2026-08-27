@@ -91,7 +91,9 @@ client-side read path degrade invisibly at chunk edges. `execute` is async anywa
 **Transport for the round trip:** `IPluginMessage` carries JSON request and response objects
 under key `voxel-webmcp`, version `1`. `src/lib/mcp/bridge.ts` owns correlation ids, timeouts,
 abort handling and pending promises. The worker intercepts the key before normal server packet
-dispatch. The `window.__mcp.call(name, args)` shim uses the same executors as browser agents.
+dispatch. The `window.__mcp.call(name, args)` shim uses the same executors and validates against
+the same JSON Schemas as browser agents. Valid worker requests execute one at a time in arrival
+order.
 
 **Undo journal:** worker RAM, never memfs. `vol.toJSON()` is what gets saved to IndexedDB;
 a journal in memfs would inflate every world save.
@@ -206,8 +208,8 @@ free from `noa.targetedBlock` and `noa.camera`.
 | `fill_region` | Fill a box, `shape: solid \| walls \| shell` |
 | `replace_blocks` | Swap one block type for another inside a box |
 | `set_blocks` | Batch of explicit position/block pairs |
-| `copy_region` | Copy `from`/`to` box to `destination`, source untouched |
-| `move_region` | Same, then fill the source with air |
+| `copy_region` | Copy `from`/`to` box to `destination`, optionally mirror and rotate, source untouched |
+| `move_region` | Same, then fill the non-overlapping source with air |
 | `stack_region` | Repeat a box N times along a direction |
 | `undo` | Walk back `count` steps |
 
@@ -255,13 +257,15 @@ an edit based on stale information, is a later addition if testing shows it is n
 
 Decided details that are easy to get wrong:
 
-1. **Overlapping copy and move.** `copy_region` and `move_region` must snapshot the source
-   before writing anything. Copying a box onto itself shifted by a few blocks otherwise reads
-   cells the same call has already overwritten.
+1. **Overlapping and transformed copy and move.** `copy_region` and `move_region` snapshot the
+   source before writing anything. Optional `mirror: x | z | xz` runs in source-local axes
+   before a clockwise `rotation: 0 | 90 | 180 | 270` around y. `destination` is the minimum
+   corner of the transformed output box.
 2. **`move_region` clears the source with air,** minus any part of the source the destination
    overlaps.
 3. **Undo covers every write tool uniformly,** including `copy_region`, `move_region` and
-   `stack_region`. Each is one step.
+   `stack_region`. Each is one step. The worker serializes all valid WebMCP requests in arrival
+   order so concurrent calls cannot race undo snapshots, change counts, scans, or revisions.
 4. **A one-block scan must return that block.** `from == to`, or `radius: 0`, is a legitimate
    probe; it returns the block name, not a one-entry histogram. This is why no separate
    `get_block` tool exists.

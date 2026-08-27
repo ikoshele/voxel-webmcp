@@ -12,6 +12,11 @@ const boxProperties = {
 
 const boxRequired = ['from', 'to'];
 
+const transformProperties = {
+	mirror: { type: 'string', enum: ['none', 'x', 'z', 'xz'], default: 'none', description: 'Reverse the source-local x coordinate, z coordinate, or both before rotation.' },
+	rotation: { type: 'integer', enum: [0, 90, 180, 270], default: 0, description: 'Clockwise rotation in degrees around the y axis when viewed from above.' },
+};
+
 export type ToolDefinition = {
 	name: string;
 	title: string;
@@ -80,15 +85,15 @@ export function createToolDefinitions(blockNames: string[]): ToolDefinition[] {
 		{
 			name: 'copy_region',
 			title: 'Copy region',
-			description: 'Copies an inclusive source box, including air, so its minimum corner lands at destination. The source is snapshotted first, so overlap is safe. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Destination of the normalized source minimum corner [x, y, z].' } }, required: [...boxRequired, 'destination'], additionalProperties: false },
+			description: 'Copies an inclusive source box, including air, with optional mirroring and clockwise y-axis rotation. Destination is the minimum corner of the transformed output box. The source is snapshotted first, so overlap is safe. One call creates one undo step.',
+			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Minimum corner of the transformed output box [x, y, z].' }, ...transformProperties }, required: [...boxRequired, 'destination'], additionalProperties: false },
 			readOnly: false,
 		},
 		{
 			name: 'move_region',
 			title: 'Move region',
-			description: 'Moves an inclusive source box, including air, so its minimum corner lands at destination, then clears non-overlapping source voxels to air. Overlap is safe. One call creates one undo step.',
-			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Destination of the normalized source minimum corner [x, y, z].' } }, required: [...boxRequired, 'destination'], additionalProperties: false },
+			description: 'Moves an inclusive source box, including air, with optional mirroring and clockwise y-axis rotation, then clears non-overlapping source voxels to air. Destination is the minimum corner of the transformed output box. Overlap is safe. One call creates one undo step.',
+			inputSchema: { type: 'object', properties: { ...boxProperties, destination: { ...point, description: 'Minimum corner of the transformed output box [x, y, z].' }, ...transformProperties }, required: [...boxRequired, 'destination'], additionalProperties: false },
 			readOnly: false,
 		},
 		{

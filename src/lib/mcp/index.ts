@@ -4,6 +4,7 @@ import { addMessage } from '../../gui/ingame/chat';
 import { blockIDmap, blockIDs } from '../gameplay/registry';
 import { attachMcpBridge, callWorkerTool, detachMcpBridge } from './bridge';
 import { createToolDefinitions, ToolDefinition } from './tools/definitions';
+import { validateToolArguments } from './tools/validation';
 
 type ModelContext = {
 	registerTool: (tool: any, options?: any) => Promise<void>;
@@ -81,12 +82,15 @@ export async function startMcpSession(noa: Engine, socket: BaseSocket) {
 	attachMcpBridge(socket);
 	const names = Array.from(new Set(['air', ...Object.keys(blockIDs)])).sort();
 	const definitions = createToolDefinitions(names);
+	const definitionMap = new Map(definitions.map((definition) => [definition.name, definition]));
 	executors = new Map(definitions.map((definition) => [definition.name, makeExecutor(definition, noa)]));
 	const mcpWindow = window as McpWindow;
 	mcpWindow.__mcp = {
 		call: async (name: string, args: object = {}) => {
+			const definition = definitionMap.get(name);
 			const execute = executors.get(name);
-			if (execute == undefined) throw new Error(`Unknown WebMCP tool: ${name}`);
+			if (definition == undefined || execute == undefined) throw new Error(`Unknown WebMCP tool: ${name}`);
+			validateToolArguments(definition, args);
 			return execute(args);
 		},
 		list: () => definitions.map((definition) => definition.name),
@@ -105,7 +109,11 @@ export async function startMcpSession(noa: Engine, socket: BaseSocket) {
 		description: definition.description,
 		inputSchema: definition.inputSchema,
 		annotations: { readOnlyHint: definition.readOnly, untrustedContentHint: false },
-		execute: (args: object, options?: { signal?: AbortSignal }) => executors.get(definition.name)(args || {}, options?.signal),
+		execute: (args: object, options?: { signal?: AbortSignal }) => {
+			const input = args || {};
+			validateToolArguments(definition, input);
+			return executors.get(definition.name)(input, options?.signal);
+		},
 	}, { signal: registrationController.signal })));
 	console.info(`Registered ${definitions.length} WebMCP tools`);
 }

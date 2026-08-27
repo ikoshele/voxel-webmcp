@@ -44,7 +44,8 @@ skip protobuf serialization on this path.
 WebMCP calls use `PluginMessage` packets with JSON encoded into the packet's byte payload and a
 correlation id. The main-thread bridge resolves asynchronous tool calls from matching worker
 responses. The browser API and the console shim use the same executors and therefore exercise
-the same world paths.
+the same world paths. The worker serializes valid WebMCP requests in arrival order so reads,
+writes, undo snapshots, and reported revisions cannot overlap one another.
 
 ## Data flow: placing a block today
 
@@ -78,8 +79,9 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
    module-level `let` exports mutated at runtime. Import them, do not snapshot them.
 9. **WebMCP exists only during an active singleplayer session.** Its registration signal is
    aborted on disconnect, and all pending bridge calls are rejected.
-10. **Agent writes are journaled in worker RAM.** One successful write call is one capped undo
-    step; the journal is neither saved nor placed in memfs.
+10. **Agent writes are journaled in worker RAM and WebMCP requests are serialized.** One
+    successful write call is one capped undo step; the journal is neither saved nor placed in
+    memfs. Valid requests execute in worker arrival order.
 
 ## Source map
 
@@ -120,7 +122,7 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `noa-engine` | Pinned to the legacy `VoxelSrv/noa-engine` commit used by the browser client |
 | `aabb-3d` | Pinned to the CommonJS `0.2.1` commit required by `noa-engine` |
 | `voxelsrv-server` | The full server, imported and run in-browser |
-| `voxelsrv-protocol` | Packet definitions, protobuf schemas |
+| `voxelsrv-protocol` | Installed from a pinned upstream GitHub commit; packet definitions and protobuf schemas |
 | `memfs` | Aliased over `fs` |
 | `fakereadline` | Local stub in `fake_modules/`, aliased over `readline` |
 

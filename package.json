@@ -62,7 +62,7 @@
 		"uuid": "8.3.2",
 		"voxel-aabb-sweep": "0.5.0",
 		"voxel-physics-engine": "0.10.0",
-		"voxelsrv-protocol": "file:vendor/voxelsrv-protocol",
+		"voxelsrv-protocol": "github:VoxelSrv/protocol#cdde4ac47a8bb80f9a9ba7788b104adcd2812fa0",
 		"voxelsrv-server": "github:VoxelSrv/voxelsrv-server#e2a79530ac89db835d9d128313723ceb8fcfa743",
 		"ws": "7.4.4"
 	},

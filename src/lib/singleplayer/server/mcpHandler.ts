@@ -12,6 +12,7 @@ const undoLimit = 50;
 const maxScanVolume = 65536;
 const maxEditVolume = 65536;
 const undoJournal: Change[][] = [];
+let operationQueue: Promise<void> = Promise.resolve();
 
 type Position = [number, number, number];
 type Box = { min: Position; max: Position; size: Position; volume: number };
@@ -347,16 +348,32 @@ async function snapshot(world: World, region: Box) {
 	return values;
 }
 
+function transformOffset(offset: Position, size: Position, mirror: string, rotation: number): Position {
+	const x = mirror.includes('x') ? size[0] - 1 - offset[0] : offset[0];
+	const z = mirror.includes('z') ? size[2] - 1 - offset[2] : offset[2];
+	if (rotation === 90) return [size[2] - 1 - z, offset[1], x];
+	if (rotation === 180) return [size[0] - 1 - x, offset[1], size[2] - 1 - z];
+	if (rotation === 270) return [z, offset[1], size[0] - 1 - x];
+	return [x, offset[1], z];
+}
+
 async function copyOrMove(server: Server, args: any, move: boolean) {
 	const world = currentWorld(server);
 	const region = box(args.from, args.to, maxEditVolume);
 	const destination = point(args.destination, 'destination');
+	const mirror = args.mirror == undefined ? 'none' : args.mirror;
+	const rotation = args.rotation == undefined ? 0 : args.rotation;
+	if (!['none', 'x', 'z', 'xz'].includes(mirror)) throw new Error('mirror must be none, x, z, or xz');
+	if (![0, 90, 180, 270].includes(rotation)) throw new Error('rotation must be 0, 90, 180, or 270');
 	const values = await snapshot(world, region);
 	const plan = new Map<string, Planned>();
 	if (move) {
 		for (let x = region.min[0]; x <= region.max[0]; x++) for (let y = region.min[1]; y <= region.max[1]; y++) for (let z = region.min[2]; z <= region.max[2]; z++) addPlan(plan, [x, y, z], 0);
 	}
-	values.forEach((value) => addPlan(plan, [destination[0] + value.offset[0], destination[1] + value.offset[1], destination[2] + value.offset[2]], value.block));
+	values.forEach((value) => {
+		const offset = transformOffset(value.offset, region.size, mirror, rotation);
+		addPlan(plan, [destination[0] + offset[0], destination[1] + offset[1], destination[2] + offset[2]], value.block);
+	});
 	return applyPlan(server, world, plan);
 }
 
@@ -406,13 +423,19 @@ async function execute(server: Server, settings: IWorldSettings, name: string, a
 	throw new Error(`Unknown worker WebMCP tool: ${name}`);
 }
 
+function enqueueOperation<T>(operation: () => Promise<T>) {
+	const result = operationQueue.then(operation);
+	operationQueue = result.then(() => undefined, () => undefined);
+	return result;
+}
+
 export async function handleMcpMessage(server: Server, socket: BaseSocket, packet: any, settings: IWorldSettings) {
 	if (packet.key !== channel || packet.version !== version) return false;
 	let request: any;
 	try {
 		request = JSON.parse(decoder.decode(packet.value instanceof Uint8Array ? packet.value : new Uint8Array(packet.value)));
 		if (request.kind !== 'request' || typeof request.id !== 'string' || typeof request.name !== 'string') throw new Error('Malformed WebMCP request');
-		const result = await execute(server, settings, request.name, request.args || {});
+		const result = await enqueueOperation(() => execute(server, settings, request.name, request.args || {}));
 		socket.send('PluginMessage', { key: channel, version, value: encoder.encode(JSON.stringify({ kind: 'response', id: request.id, result })) });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);

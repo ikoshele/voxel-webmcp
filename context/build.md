@@ -44,8 +44,8 @@ Set in `vite.shared.mjs`, shared by both builds:
 | `fs` | `memfs` | `voxelsrv-server` writes chunk files; there is no filesystem in a browser |
 | `readline` | `fakereadline` | Local stub in `fake_modules/`; the server's console input is unused |
 
-Symlinks stay unresolved in both builds so local `file:` packages retain their `node_modules`
-identity and pass through dependency optimization and CommonJS conversion.
+Symlinks stay unresolved in both builds so the local `fakereadline` package retains its
+`node_modules` identity and passes through dependency optimization and CommonJS conversion.
 
 ## Plugins
 
@@ -65,7 +65,7 @@ world saving fails with no clear error.
 - `base: './'` — output is relocatable, works from a subdirectory or `file://`.
 - Output is flattened: `bundle.js`, `[name].js`, `[name][extname]`.
 - `@babylonjs` is split into a `babylon.js` chunk.
-- `target: 'es2018'`.
+- `target: 'es2020'` because the legacy Classic protocol path includes native BigInt literals.
 - `commonjsOptions.include: [/node_modules/]` with `transformMixedEsModules: true` — several
   dependencies ship mixed CJS/ESM and fail to bundle without it.
 
