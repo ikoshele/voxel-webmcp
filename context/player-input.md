@@ -29,17 +29,21 @@ Camera look also has a window-level keyboard fallback that does not require canv
 pointer lock. Arrow left/right change heading and arrow up/down change pitch. A key tap rotates
 15 degrees, while holding rotates continuously. It is intentionally fixed rather than stored
 in `gameSettings.controls`, so browser agents can rely on the arrow keys in every session. The
-handler is disabled while chat, an inventory, crafting, a chest, or the pause menu is open.
+handler is disabled while chat, an inventory, crafting, or a chest is open.
 
 Every handler starts with `if (!serverSettings.ingame ...) return;` and most also call
 `testIsIn(noa)`, which checks pointer lock state.
+
+Pointer lock is requested only from a canvas click or an explicit input action because browsers
+reject attempts made during bootstrap without a user gesture.
 
 | Binding | Action |
 | --- | --- |
 | `fire` | Break the targeted block: `ActionClick` + `ActionBlockBreak` |
 | `alt-fire` | Place at `targetedBlock.adjacent`: `ActionClick` + `ActionBlockPlace`, gated by `noa.ents.isTerrainBlocked` |
 | `mid-fire` | Pick block: select or swap the matching hotbar slot |
-| `inventory`, `chat`, `cmd`, `menu`, `tab`, `zoom`, `screenshot`, `hide` | GUI toggles |
+| `inventory`, `chat`, `cmd`, `tab`, `zoom`, `screenshot`, `hide` | GUI toggles |
+| `menu` | Escape closes an active GUI, otherwise toggles pointer lock |
 | `numberkey` (1–9) | Hotbar selection |
 | Arrow keys | Camera heading and pitch without pointer lock |
 

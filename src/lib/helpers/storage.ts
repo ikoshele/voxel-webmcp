@@ -50,25 +50,11 @@ class Database extends Dexie {
 
 export const db = new Database();
 
-export async function getWorldList() {
-	return await db.world.orderBy('lastplay').reverse().toArray();
-}
-
 export async function saveWorld(name: string, data: object, settings: IWorldSettings) {
 	await db.world.delete(name);
 	await db.worlddata.delete(name);
 	await db.world.add({name, settings, lastplay: Date.now()}, name)
 	await db.worlddata.add({name, data}, name)
-}
-
-export async function updateWorldSetting(name: string, settings: IWorldSettings, lastPlay: number) {
-	await db.world.delete(name);
-	await db.world.add({name, settings, lastplay: lastPlay}, name)
-}
-
-export async function deleteWorld(name: string) {
-	await db.world.delete(name);
-	db.worlddata.delete(name);
 }
 
 export async function getWorld(name: string): Promise<IWorld> {
@@ -89,19 +75,4 @@ export async function getSettings(): Promise<object> {
 
 export async function saveSettings(data) {
 	await db.main.put({ name: 'settings', data: data });
-}
-
-
-export async function getAuthData(): Promise<object> {
-	const x = (await db.main.where('name').equals('auth').toArray())[0];
-	if (x != undefined) return x.data;
-	return null;
-}
-
-export async function saveAuthData(data) {
-	await db.main.put({ name: 'auth', data: data });
-}
-
-export async function clearAuthData() {
-	await db.main.delete('auth');
 }

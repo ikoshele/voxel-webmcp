@@ -15,24 +15,40 @@ import {
 	defaultValues,
 	gameSettings,
 	gameVersion,
-	singleplayerWorldTypes,
-	singleplayerServerInfo,
-	setAuthInfo,
+	IWorldSettings,
 } from './values';
 import { constructScreen, getScreen } from './gui/main';
 
-import { getAuthData, getSettings } from './lib/helpers/storage';
+import { getSettings, getWorld, saveWorld } from './lib/helpers/storage';
 import { setupClouds, setupSky } from './lib/gameplay/sky';
-import { buildMainMenu } from './gui/menu/main';
-import { connect, setupConnection } from './lib/gameplay/connect';
+import { setupConnection } from './lib/gameplay/connect';
 import { setupMobile } from './gui/mobile';
 import { setupGamepad } from './lib/player/gamepad';
 import { createInflateWorker, setupWorld } from './lib/gameplay/world';
 
 import { setupToasts } from './gui/parts/toastMessage';
-import { createProtocolWorker } from './socket';
 import { PopupGUI } from './gui/parts/miniPopupHelper';
 import { createSingleplayerServer } from './lib/singleplayer/setup';
+
+const worldName = 'webmcp-world';
+
+async function getLocalWorldSettings(): Promise<IWorldSettings> {
+	const savedWorld = await getWorld(worldName);
+	if (savedWorld != undefined) return savedWorld.settings;
+	const settings: IWorldSettings = {
+		gamemode: 'creative',
+		gameVersion,
+		serverVersion: '',
+		worldsize: 16,
+		version: 0,
+		seed: Math.floor(Math.random() * 2147483647),
+		generator: 'normal',
+		icon: 'voxelsrv',
+		displayName: 'WebMCP World',
+	};
+	await saveWorld(worldName, {}, settings);
+	return settings;
+}
 
 defaultFonts.forEach((font) => document.fonts.load(`10pt "${font}"`));
 
@@ -121,15 +137,8 @@ getSettings().then(async (data: IGameSettings) => {
 	);
 
 	loading.setCenterText([{ text: 'Creating workers...' }]);
-	await createProtocolWorker();
 	await createInflateWorker();
-	loading.setCenterText([{ text: 'Checking login data...' }]);
-	setAuthInfo(await getAuthData(), false);
-	loading.setCenterText([{ text: 'Finishing...' }]);
-
-	window['connect'] = (x) => {
-		connect(noa, x);
-	};
+	loading.setCenterText([{ text: 'Loading local world...' }]);
 
 	window['enableDebugSettings'] = () => {
 		gameSettings.debugSettings.makeSettingsVisible = true;
@@ -153,27 +162,8 @@ getSettings().then(async (data: IGameSettings) => {
 		});
 	}
 
-	// Default actions
-	const options = new URLSearchParams(window.location.search);
-
+	const worldSettings = await getLocalWorldSettings();
 	loading.dispose();
-	if (!!options.get('server')) {
-		connect(noa, options.get('server'));
-	} if (options.get('debugWorld') != undefined) {
-		const socket = createSingleplayerServer('debugWorld', {
-			gamemode: 'creative',
-			gameVersion: gameVersion,
-			serverVersion: '',
-			worldsize: 32,
-			version: 0,
-			seed: 2021,
-			generator: singleplayerWorldTypes[0],
-			icon: 'voxelsrv',
-			displayName: 'debugWorld'
-		}, true);
-
-		setupConnection(noa, socket, {...singleplayerServerInfo, motd: 'debugWorld' });
-	} else {
-		buildMainMenu(noa);
-	}
+	const socket = createSingleplayerServer(worldName, worldSettings, true);
+	setupConnection(noa, socket);
 });

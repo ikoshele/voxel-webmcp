@@ -8,14 +8,8 @@ import {
 	updateServerSettings,
 	gameVersion,
 	defaultValues,
-	proxyServer,
-	IServerInfo,
-	getServerList,
-	heartbeatServer,
-	getAuthInfo,
 } from '../../values';
 import { isMobile } from 'mobile-device-detect';
-import { buildMainMenu, holder } from '../../gui/menu/main';
 import { setupGuis, destroyGuis } from '../../gui/setup';
 import { addMessage } from '../../gui/ingame/chat';
 import { setupPlayerEntity } from '../player/entity';
@@ -28,7 +22,7 @@ import { cloudMesh, setupClouds, setupSky, skyMesh } from './sky';
 import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 
 import * as vec3 from 'gl-vec3';
-import { BaseSocket, MPSocket, ProxySocket } from '../../socket';
+import { BaseSocket } from '../../socket';
 
 import { setTab } from '../../gui/tab';
 import {
@@ -72,8 +66,6 @@ import { openCrafting } from '../../gui/ingame/inventory/crafting';
 import { showMobileControls } from '../../gui/mobile';
 import { PopupGUI } from '../../gui/parts/miniPopupHelper';
 import { getScreen } from '../../gui/main';
-import { addToast, toastColors } from '../../gui/parts/toastMessage';
-import { ProxyHandler } from './proxyHandler';
 import { Engine } from 'noa-engine';
 import { startMcpSession, stopMcpSession } from '../mcp';
 
@@ -86,15 +78,11 @@ export function socketSend(type, data) {
 	if (socket != undefined) socket.send(type, data);
 }
 
-export function isSingleplayer() {
-	return socket != undefined && socket.singleplayer;
-}
-
 let noa: Engine;
 let entityList = {};
 let connectionScreen = null;
 
-export function disconnect(menu: boolean = true): boolean {
+export function disconnect(): boolean {
 	stopMcpSession();
 	socket.close(0);
 	stopListening(noa);
@@ -114,132 +102,40 @@ export function disconnect(menu: boolean = true): boolean {
 	updateServerSettings({ ingame: false });
 	document.exitPointerLock();
 
-	if (socket.singleplayer) {
-		socket.send('SingleplayerLeave', {});
-		const savingWorld = new PopupGUI([{ text: '' }]);
-		savingWorld.setCenterText([{ text: 'Saving world...' }]);
+	socket.send('SingleplayerLeave', {});
+	const savingWorld = new PopupGUI([{ text: '' }]);
+	savingWorld.setCenterText([{ text: 'Saving world...' }]);
 
-		getScreen(2).addControl(savingWorld.main);
+	getScreen(2).addControl(savingWorld.main);
 
-		socket.on('ServerStoppingDone', () => {
-			console.log('World Saved!');
-			socket.close();
-			savingWorld.dispose();
-			buildMainMenu(noa);
-		});
-		return false;
-	} else {
-		if (menu) buildMainMenu(noa);
-		return !menu;
-	}
+	socket.on('ServerStoppingDone', () => {
+		console.log('World Saved!');
+		socket.close();
+		savingWorld.dispose();
+	});
+	return false;
 }
 
-export async function connect(noa, server: string) {
-	try {
-		let socket: BaseSocket;
-		let data: IServerInfo;
-
-		data = (await getServerList())[server.replace('*', '')];
-
-		if (data == undefined) {
-			data = {
-				name: 'Multiplayer server',
-				ip: server,
-				rawIP: server,
-				motd: '',
-				protocol: gameProtocol,
-				software: 'VoxelSrv',
-				featured: false,
-				icon: 'voxelsrv',
-				type: 0,
-				players: {
-					max: 0,
-					online: 0,
-				},
-				useProxy: false,
-				useProxyProtocol: server[0] == '*',
-				auth: false,
-			};
-		}
-
-		if (server[0] == '*') {
-			if (!(server.startsWith('*wss://') || server.startsWith('*ws://'))) {
-				socket = new ProxySocket(data.useProxy ? proxyServer : 'ws://' + server.slice(1), new ProxyHandler(server.slice(1)));
-			} else {
-				socket = new ProxySocket(
-					data.useProxy ? proxyServer : server.slice(1),
-					new ProxyHandler(server.replace('*wss://', '').replace('*ws://', ''))
-				);
-			}
-		} else if (!(server.startsWith('wss://') || server.startsWith('ws://'))) {
-			socket = new MPSocket('ws://' + server);
-		} else {
-			socket = new MPSocket(server);
-		}
-
-		setupConnection(noa, socket, data);
-	} catch (e) {
-		addToast([{ text: e.name }], [{ text: e.message }], toastColors.error, 5);
-	}
-}
-
-export function setupConnection(noax, socketx: BaseSocket, serverInfo: IServerInfo) {
-	if (socketx.singleplayer) {
-		document.title = 'VoxelSrv - Loading world...';
-	} else {
-		document.title = 'VoxelSrv - Connecting to server...';
-	}
+export function setupConnection(noax, socketx: BaseSocket) {
+	document.title = 'Voxel WebMCP - Loading world...';
 	socketx.noa = noax;
 	noa = noax;
 	const engine: BabylonEngine = noa.rendering.getScene().getEngine();
 	noa.worldName = 'World' + Math.round(Math.random() * 1000);
 	socket = socketx;
-	console.log('Username: ' + gameSettings.nickname, 'Server/World: ' + socket.server || socket.world);
+	console.log('Player: ' + gameSettings.nickname, 'World: ' + socket.world);
 	let firstLogin = true;
 	entityList = {};
 
-	if (holder != null) holder.dispose();
-
-	const connScreen = new PopupGUI([{ text: !!serverInfo.name ? serverInfo.name : socket.server }]);
+	const connScreen = new PopupGUI([{ text: 'Loading local world...' }]);
 	connectionScreen = connScreen;
-	if (!socket.singleplayer) {
-		connScreen.setSubtitle([{ text: !!serverInfo.motd ? serverInfo.motd : 'Unknown server' }]);
-		connScreen.setCenterText([{ text: 'Logging in...' }]);
-
-		connScreen.createItem('Disconnect', () => {
-			disconnect();
-		});
-	} else {
-		connScreen.setSubtitle([{ text: socket.world }]);
-		connScreen.setCenterText([{ text: 'Loading world...' }]);
-	}
+	connScreen.setCenterText([{ text: 'Generating terrain...' }]);
 
 	getScreen(2).addControl(connScreen.main);
 
 	socket.on('PlayerKick', (data: IPlayerKick) => {
 		console.log(`You has been kicked from server \nReason: ${data.reason}`);
-		const x = disconnect(false);
-		if (x) {
-			document.title = 'VoxelSrv - Disconnected!';
-
-			const disc = new PopupGUI([{ text: socket.singleplayer ? '' : 'Disconnected!' }]);
-
-			disc.setCenterText([{ text: data.reason }]);
-			if (!socket.singleplayer) {
-				disc.createItem('Reconnect', () => {
-					disc.dispose();
-					connect(noa, (socket instanceof ProxySocket ? '*' : '') + socket.server);
-				});
-			}
-			disc.createItem('Main menu', () => {
-				disc.dispose();
-				buildMainMenu(noa);
-			});
-
-			getScreen(2).addControl(disc.main);
-
-			document.exitPointerLock();
-		}
+		disconnect();
 		return;
 	});
 
@@ -261,59 +157,17 @@ export function setupConnection(noax, socketx: BaseSocket, serverInfo: IServerIn
 		});
 
 		const scene: Scene = noa.rendering.getScene();
-
-		const storedAuth = getAuthInfo();
-
-		let auth = '';
-		let uuid = gameSettings.nickname.toLowerCase();
-		let username = storedAuth?.username || gameSettings.nickname;
-
-		if (dataLogin.auth) {
-			try {
-				if (gameSettings.debugSettings.printAuthToConsole) {
-					console.log('Auth: Requesting token');
-				}
-
-				const response = await (
-					await fetch(heartbeatServer + '/api/createToken', {
-						method: 'post',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							serverSecret: dataLogin.secret,
-							loginToken: getAuthInfo()?.token,
-						}),
-					})
-				).json();
-
-				if (gameSettings.debugSettings.printAuthToConsole) {
-					console.log('Auth: Response!', response);
-				}
-
-				if (!response.error) {
-					auth = response.token;
-					uuid = response.uuid;
-					username = response.username;
-				}
-			} catch (e) {
-				if (gameSettings.debugSettings.printAuthToConsole) {
-					console.log('Auth: Error!');
-				}
-				console.error(e);
-			}
-		} else if (storedAuth != null) {
-			uuid = storedAuth.uuid;
-			username = storedAuth.username;
-		}
+		const uuid = gameSettings.nickname.toLowerCase();
 
 		setAssetServer(socket.server);
 
 		socket.send('LoginResponse', {
-			username: username,
+			username: gameSettings.nickname,
 			protocol: gameProtocol,
 			mobile: isMobile,
-			client: `VoxelSrv ${gameVersion}`,
+			client: `Voxel WebMCP ${gameVersion}`,
 			uuid: uuid,
-			secret: auth,
+			secret: '',
 		});
 
 		let entityIgnore: string = '';
@@ -346,11 +200,7 @@ export function setupConnection(noax, socketx: BaseSocket, serverInfo: IServerIn
 
 			updateServerSettings({ ingame: true });
 
-			if (socket.singleplayer) {
-				document.title = `VoxelSrv - Playing on singleplayer world`;
-			} else {
-				document.title = `VoxelSrv - Playing on ${socket.server}`;
-			}
+			document.title = 'Voxel WebMCP';
 			registerBlocks(noa, JSON.parse(dataPlayer.blocksDef));
 			registerItems(noa, JSON.parse(dataPlayer.itemsDef));
 
@@ -376,7 +226,7 @@ export function setupConnection(noax, socketx: BaseSocket, serverInfo: IServerIn
 			destroyGuis();
 			clearStorage();
 
-			setupGuis(noa, socket, dataPlayer, dataLogin);
+			setupGuis(noa, socket);
 			void startMcpSession(noa, socket).catch((error) => console.error('Failed to start WebMCP session', error));
 
 			if (isMobile) {

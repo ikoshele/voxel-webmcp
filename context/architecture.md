@@ -18,7 +18,7 @@ Three JavaScript contexts, all inside one browser tab.
 ```text
 ┌─ main thread ───────────────────────────────────────────────┐
 │  index.ts  →  noa-engine (Babylon.js render, physics, input) │
-│  Babylon GUI overlay (menus, hotbar, chat, inventory)        │
+│  Babylon GUI overlay (loading, hotbar, chat, inventory)      │
 │  client chunk store (src/lib/gameplay/world.ts)              │
 │  document.modelContext tools + window.__mcp test shim         │
 │  BaseSocket subclass                                         │
@@ -31,8 +31,6 @@ Three JavaScript contexts, all inside one browser tab.
 │  memfs volume holds chunk files                              │
 │  spawns further workers for terrain generation               │
 └──────────────────────────────────────────────────────────────┘
-
-  Web Worker: protocol.js   protobuf encode/decode (multiplayer only)
   Web Worker: inflate.js    pako inflate for compressed chunk payloads
 ```
 
@@ -88,14 +86,13 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | Path | Role |
 | --- | --- |
 | `src/index.ts` | Entry point, engine bootstrap |
-| `src/values.ts` | Global settings, engine options, server list, splash text |
-| `src/socket.ts` | `BaseSocket`, `MPSocket`, `ProxySocket`, `VirtualSocket` |
-| `src/lib/gameplay/connect.ts` | Every server→client packet handler. 670 lines |
+| `src/values.ts` | Global settings and engine options |
+| `src/socket.ts` | `BaseSocket` and the local-worker `VirtualSocket` |
+| `src/lib/gameplay/connect.ts` | Server→client packet handlers and local login lifecycle |
 | `src/lib/gameplay/world.ts` | Client chunk store, noa chunk load/unload wiring |
 | `src/lib/gameplay/registry.ts` | Block/item registration, `blockIDmap` lookups |
 | `src/lib/gameplay/sky.ts` | Sky and cloud meshes |
 | `src/lib/gameplay/sound.ts` | Sound playback |
-| `src/lib/gameplay/proxyHandler.ts` | Minecraft Classic proxy bridge |
 | `src/lib/player/controls.ts` | Input bindings, block break/place, hotbar |
 | `src/lib/player/entity.ts` | Player entity setup, movement packets |
 | `src/lib/player/gamepad.ts` | Gamepad input |
@@ -108,11 +105,9 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `src/lib/singleplayer/server/worldRevision.ts` | Revision tracking for `World.setBlock` |
 | `src/lib/singleplayer/server/*Patches.ts` | Monkey-patches over the server package |
 | `src/lib/helpers/storage.ts` | Dexie/IndexedDB persistence |
-| `src/lib/helpers/protocol.ts` | Protobuf worker entry |
 | `src/lib/helpers/worldInflate.ts` | pako inflate worker entry |
-| `src/gui/**` | Babylon GUI screens |
-| `src/protocolWrappers/0.30c/**` | Minecraft Classic protocol client |
-| `build-workers.mjs` | Builds the four worker bundles into `public/` |
+| `src/gui/**` | Loading overlay and in-game Babylon GUI screens |
+| `build-workers.mjs` | Builds the three worker bundles into `public/` |
 | `vite.shared.mjs` | Shared plugins and aliases for both builds |
 
 ## Third-party packages that matter
@@ -128,10 +123,7 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 
 ## Dead or inert code
 
-- `webpack.config.js` and the `build:webpack` script. The Vite pipeline replaced them. Kept
-  only as reference for the original build.
 - `src/gui/hand.ts` — `setupHand` is commented out at its only call site in `src/gui/setup.ts`.
-- Multiplayer and proxy paths are live but out of scope. See `context/networking.md`.
 
 ## Open decisions
 

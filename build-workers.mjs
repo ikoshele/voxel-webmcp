@@ -6,7 +6,6 @@ import { sharedAlias, sharedCommonjs, sharedPlugins } from './vite.shared.mjs';
 // звичайним `new Worker(url)`. ESM-вихід тут не працює.
 // Кладемо їх у public/, щоб один і той самий файл обслуговувався і в dev, і в prod.
 const workers = [
-	{ name: 'protocol', entry: 'src/lib/helpers/protocol.ts' },
 	{ name: 'inflate', entry: 'src/lib/helpers/worldInflate.ts' },
 	{ name: 'server', entry: 'src/lib/singleplayer/server/server.ts' },
 	{ name: 'normalWorker', entry: 'node_modules/voxelsrv-server/dist/default/worldgen/normalWorker.js' },

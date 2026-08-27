@@ -30,8 +30,8 @@ npm run build    # production build into dist/
 `npm run build:workers` must run before a bare `vite` invocation — the npm scripts do it for
 you. See `context/build.md`.
 
-After entering a singleplayer world, the same executors exposed to a browser agent are available
-through a diagnostic console shim:
+The app opens its persistent local world immediately. The same executors exposed to a browser
+agent are available through a diagnostic console shim:
 
 ```javascript
 window.__mcp.list()
@@ -64,8 +64,6 @@ maintained. Its release history is in `CHANGELOG.md`.
 - Textures: [Pixel Perfection Community Edition](https://github.com/Athemis/PixelPerfectionCE)
   by XSSheep and others
 - Models by [ewanhowell5195](https://www.curseforge.com/minecraft/texture-packs/template-cem)
-- Minecraft Classic protocol support based on work by
-  [rom1504 and mhsjlw](https://github.com/mhsjlw/minecraft-classic-protocol)
 
 ## Licence
 

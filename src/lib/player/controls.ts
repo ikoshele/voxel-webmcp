@@ -7,7 +7,6 @@ import { hotbar } from '../../gui/ingame/hotbar';
 import { input as chatInput, changeState as chanceChatState, chatContainer } from '../../gui/ingame/chat';
 import { socket, socketSend } from '../gameplay/connect';
 import { getUI } from '../../gui/main';
-import { pauseScreen } from '../../gui/menu/pause';
 import { tabContainer } from '../../gui/tab';
 import { debug, dot } from '../../gui/ingame/debug';
 import { ActionInventoryClick, ActionInventoryClose } from 'voxelsrv-protocol/js/client';
@@ -23,7 +22,7 @@ const keyboardLookTapStep = Math.PI / 12;
 const keyboardLookHoldSpeed = Math.PI / 1500;
 
 function canUseKeyboardLook() {
-	return serverSettings.ingame && !inventory && !craftingInventory && !chestInventory && !chatInput?.isVisible && !pauseScreen?.isVisible;
+	return serverSettings.ingame && !inventory && !craftingInventory && !chestInventory && !chatInput?.isVisible;
 }
 
 function rotateCamera(noa: Engine, horizontal: number, vertical: number) {
@@ -82,12 +81,9 @@ export function setupControls(noa: any) {
 	const scene = noa.rendering.getScene();
 	const ui = getUI(1);
 
-	// Lock mouse
-	noa.container.canvas.requestPointerLock();
-
 	noa.container.canvas.addEventListener('click', () => {
 		if (!serverSettings.ingame) return;
-		if (!!inventory || !!craftingInventory || chatInput.isVisible || pauseScreen.isVisible) return;
+		if (!!inventory || !!craftingInventory || chatInput.isVisible) return;
 
 		noa.container.canvas.requestPointerLock();
 
@@ -215,7 +211,7 @@ export function setupControls(noa: any) {
 
 	noa.inputs.down.on('inventory', function () {
 		if (!serverSettings.ingame) return;
-		if (chatInput.isVisible || pauseScreen.isVisible) return;
+		if (chatInput.isVisible) return;
 		if (!!inventory) {
 			closeInventory();
 			noa.container.canvas.requestPointerLock();
@@ -239,7 +235,7 @@ export function setupControls(noa: any) {
 
 	noa.inputs.down.on('chat', function () {
 		if (!serverSettings.ingame) return;
-		if (!!inventory || chatInput.isVisible || pauseScreen.isVisible) return;
+		if (!!inventory || chatInput.isVisible) return;
 		chatInput.isVisible = true;
 		chanceChatState(true);
 		document.exitPointerLock();
@@ -249,7 +245,7 @@ export function setupControls(noa: any) {
 
 	noa.inputs.down.on('cmd', function () {
 		if (!serverSettings.ingame) return;
-		if (!!inventory || chatInput.isVisible || pauseScreen.isVisible) return;
+		if (!!inventory || chatInput.isVisible) return;
 		chatInput.isVisible = true;
 		chanceChatState(true);
 		document.exitPointerLock();
@@ -285,14 +281,8 @@ export function setupControls(noa: any) {
 		}
 
 
-		if (pauseScreen.isVisible) {
-			pauseScreen.isVisible = false;
-			return;
-		} else {
-			document.exitPointerLock();
-			pauseScreen.isVisible = true;
-			return;
-		}
+		if (document.pointerLockElement == noa.container.canvas) document.exitPointerLock();
+		else noa.container.canvas.requestPointerLock();
 	});
 
 	// Sends chat message

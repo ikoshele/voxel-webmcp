@@ -5,6 +5,11 @@ authoritative world.
 
 ## Spawn
 
+The application always opens the IndexedDB world named `webmcp-world`. On first launch,
+`src/index.ts` creates it in creative mode with the normal generator, a random positive
+31-bit seed, and `worldsize: 16`, matching the old UI's 1024×1024 preset. Later launches reuse
+the saved settings and voxel data.
+
 `src/lib/singleplayer/setup.ts` → `createSingleplayerServer(worldname, settings, autoconnect)`:
 
 1. Creates `toServer` / `toClient` `EventEmitter`s and a `VirtualSocket` over them.

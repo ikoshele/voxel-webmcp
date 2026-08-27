@@ -17,11 +17,10 @@ and the game will fail at startup with missing worker files.
 
 ## Worker bundles
 
-`build-workers.mjs` builds four entries into `public/` as **IIFE** libraries:
+`build-workers.mjs` builds three entries into `public/` as **IIFE** libraries:
 
 | Output | Entry |
 | --- | --- |
-| `public/protocol.js` | `src/lib/helpers/protocol.ts` |
 | `public/inflate.js` | `src/lib/helpers/worldInflate.ts` |
 | `public/server.js` | `src/lib/singleplayer/server/server.ts` |
 | `public/normalWorker.js` | `node_modules/voxelsrv-server/dist/default/worldgen/normalWorker.js` |
@@ -65,7 +64,7 @@ world saving fails with no clear error.
 - `base: './'` — output is relocatable, works from a subdirectory or `file://`.
 - Output is flattened: `bundle.js`, `[name].js`, `[name][extname]`.
 - `@babylonjs` is split into a `babylon.js` chunk.
-- `target: 'es2020'` because the legacy Classic protocol path includes native BigInt literals.
+- `target: 'es2020'` for the current dependency graph and browser baseline.
 - `commonjsOptions.include: [/node_modules/]` with `transformMixedEsModules: true` — several
   dependencies ship mixed CJS/ESM and fail to bundle without it.
 

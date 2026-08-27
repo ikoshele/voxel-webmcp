@@ -7,7 +7,7 @@ behavior and limits. Delete this file after the browser console and agent scenar
 
 1. Run `npx tsc --noEmit` and `npm run build`.
 2. Restart `npm run dev`; worker source changes are not hot-reloaded.
-3. Enter a singleplayer world and run `window.__mcp.list()` in the browser console.
+3. Wait for the automatically opened local world and run `window.__mcp.list()` in the browser console.
 4. Run `await window.__mcp.call('get_world_info', {})` and inspect `block_catalog`.
 5. Run `await window.__mcp.call('get_player', {})`.
 6. Scan a known block with `await window.__mcp.call('scan_region', { from: [x,y,z], to: [x,y,z] })`.

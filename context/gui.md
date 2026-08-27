@@ -12,7 +12,7 @@ game screens — `index.html` contains only the canvas mount and a script tag.
 | --- | --- | --- |
 | 0 | noa's own scene | Overlay drawn with the game |
 | 1 | `layer0`, a separate `BABYLON.Scene` | In-game HUD; `getUI(1)` takes chat input focus |
-| 2 | `layer1`, a separate `BABYLON.Scene` | Menus, popups, loading screens. Rendered last, on top |
+| 2 | `layer1`, a separate `BABYLON.Scene` | Popups and loading screens. Rendered last, on top |
 
 Accessors: `getUI(n)` and `getScreen(n)` take `0 | 1 | 2`. **`getLayer(n)` takes only `0 | 1`**
 and returns the two extra scenes — its numbering is offset from the other two by one. All three
@@ -36,8 +36,7 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 | `src/gui/ingame/chat.ts` | Chat log and input; exports `input`, `chatContainer`, `changeState`, `addMessage` |
 | `src/gui/ingame/debug.ts` | F3-style debug overlay and crosshair (`dot`) |
 | `src/gui/ingame/inventory/*` | Main inventory, crafting, chest |
-| `src/gui/menu/*` | Main menu, singleplayer, multiplayer, settings, pause, login, about, world creation and editing |
-| `src/gui/parts/*` | Reusable widgets: window, menu, item slot, toast, popup, formatted text, settings helper |
+| `src/gui/parts/*` | Reusable widgets: window, menu item, item slot, toast, popup, formatted text |
 | `src/gui/tab.ts` | Player list overlay |
 | `src/gui/mobile.ts` | Touch controls, loaded only when `isMobile` |
 | `src/gui/hand.ts` | Held-item render. Dead — `setupHand` is commented out in `setup.ts` |
@@ -49,14 +48,14 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 per-GUI teardown.
 
 In-game GUI singletons (`inventory`, `craftingInventory`, `chestInventory`, `hotbar`,
-`chatContainer`, `input`, `tabContainer`, `debug`, `dot`, `pauseScreen`) are module-level
+`chatContainer`, `input`, `tabContainer`, `debug`, `dot`) are module-level
 exports, nullable, and checked for truthiness by input handlers to decide whether a key press
 belongs to the game or to a GUI.
 
 ## Text formatting
 
 `src/gui/parts/formtextblock.ts` defines `IFormatedText`: `{ text, color?, font?, url? }`.
-Arrays of these are the standard rich-text payload for chat, popups and menu labels.
+Arrays of these are the standard rich-text payload for chat and popups.
 
 ## Toasts
 
