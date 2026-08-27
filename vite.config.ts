@@ -1,9 +1,27 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import type { Plugin } from 'vite';
 import { noaRequireContextEsbuild, sharedAlias, sharedCommonjs, sharedPlugins } from './vite.shared.mjs';
+
+function legalFiles(): Plugin {
+	return {
+		name: 'legal-files',
+		generateBundle() {
+			for (const fileName of ['LICENCE', 'THIRD_PARTY_NOTICES.md']) {
+				this.emitFile({
+					type: 'asset',
+					fileName,
+					source: readFileSync(resolve(process.cwd(), fileName), 'utf8'),
+				});
+			}
+		},
+	};
+}
 
 export default defineConfig({
 	base: './',
-	plugins: sharedPlugins(),
+	plugins: [...sharedPlugins(), legalFiles()],
 	resolve: { alias: sharedAlias },
 	optimizeDeps: {
 		esbuildOptions: {

@@ -68,6 +68,7 @@ world saving fails with no clear error.
 
 - `base: './'` — output is relocatable, works from a subdirectory or `file://`.
 - Output is flattened: `bundle.js`, `[name].js`, `[name][extname]`.
+- `LICENCE` and `THIRD_PARTY_NOTICES.md` are emitted into every production build.
 - `@babylonjs` is split into a `babylon.js` chunk.
 - `target: 'es2020'` for the current dependency graph and browser baseline.
 - `commonjsOptions.include: [/node_modules/]` with `transformMixedEsModules: true` — several
