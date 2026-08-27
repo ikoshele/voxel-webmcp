@@ -34,6 +34,8 @@ export class BaseSocket {
 		if (this.listeners[type] == undefined) return;
 		this.listeners[type] = this.listeners[type].filter((listener) => listener != func);
 	}
+
+	terminate() {}
 }
 
 export class VirtualSocket extends BaseSocket {
@@ -79,5 +81,10 @@ export class VirtualSocket extends BaseSocket {
 
 	off(type: string, func) {
 		this.toClient.off(type, func);
+	}
+
+	terminate() {
+		this.attachedData?.terminate();
+		this.closed = true;
 	}
 }

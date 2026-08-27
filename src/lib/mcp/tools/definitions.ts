@@ -29,6 +29,13 @@ export function createToolDefinitions(blockNames: string[]): ToolDefinition[] {
 	const block = { type: 'string', enum: blockNames };
 	return [
 		{
+			name: 'get_building_guide',
+			title: 'Load voxel builder guide',
+			description: 'Call this once before your first world-related action. Explains the voxel sandbox, your administrator-like editing capabilities, required workflow, tool choice, construction principles, player traversal constraints, and material guidance. Then call get_world_info for current bounds and available blocks.',
+			inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+			readOnly: true,
+		},
+		{
 			name: 'get_world_info',
 			title: 'Get world info',
 			description: 'Call this before planning a build. Returns the editable world bounds, coordinate system, generator, game mode, current world revision, and the single authoritative block catalog with human-readable labels, texture meanings, and physical or visual traits. Material characteristics live here rather than being repeated in every editing tool.',

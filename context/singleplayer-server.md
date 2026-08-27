@@ -16,7 +16,10 @@ The inventory's `Save world` action sends `SingleplayerAutoSave`. Patched chunk 
 synchronously into memfs before the worker snapshots `vol.toJSON()` and emits `ServerSave`;
 `src/lib/singleplayer/setup.ts` serializes snapshots in arrival order and persists them to
 IndexedDB. The same request runs automatically every `gameSettings.autoSaveInterval` seconds
-while the local server is active.
+while the local server is active. `Export world` waits for this save to finish and downloads a
+versioned JSON archive containing settings and memfs data. `Import world` validates a JSON file,
+requires a second click, terminates the active worker, atomically replaces both IndexedDB
+records, and reloads the page.
 
 `src/lib/singleplayer/setup.ts` → `createSingleplayerServer(worldname, settings, autoconnect)`:
 
@@ -25,7 +28,7 @@ while the local server is active.
 3. Loads saved world data from IndexedDB, posts three messages:
    `SingleplayerViewDistance`, `SingleplayerWorldData`, `SingleplayerSettings`.
 4. `server.onmessage` re-emits every worker message on `toClient`, intercepting
-   `ServerStopped`, `ServerAutoSave` and `ServerStarted` for save and autoconnect handling.
+   `ServerStopped`, `ServerSave` and `ServerStarted` for save and autoconnect handling.
 5. `toServer.on('packet', ...)` forwards client packets into the worker.
 
 ## Worker entry
@@ -52,7 +55,9 @@ Control messages handled in the worker's `self.onmessage`:
 
 `memfs` is aliased over `fs`. The server writes chunk files into the in-memory volume; the
 whole volume is serialized with `vol.toJSON()` and stored in IndexedDB via
-`src/lib/helpers/storage.ts` (Dexie).
+`src/lib/helpers/storage.ts` (Dexie). Metadata and memfs data are updated in one IndexedDB
+transaction. Portable JSON archives use format `voxel-webmcp-world`, version `1`, and accept
+files up to 128 MB.
 
 Consequence: anything written into memfs inflates every world save. Transient state — an undo
 journal, a copy buffer — belongs in worker RAM, not memfs.

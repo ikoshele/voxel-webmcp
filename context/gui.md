@@ -35,7 +35,7 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 | `src/gui/ingame/hotbar.ts` | Hotbar |
 | `src/gui/ingame/chat.ts` | Chat log and input; exports `input`, `chatContainer`, `changeState`, `addMessage` |
 | `src/gui/ingame/debug.ts` | F3-style debug overlay and crosshair (`dot`) |
-| `src/gui/ingame/inventory/*` | Main inventory, crafting, chest, manual save, and the guarded local-world reset action |
+| `src/gui/ingame/inventory/*` | Main inventory, crafting, chest, save, JSON export/import, and guarded world replacement actions |
 | `src/gui/parts/*` | Reusable widgets: window, menu item, item slot, toast, popup, formatted text |
 | `src/gui/tab.ts` | Player list overlay |
 | `src/gui/mobile.ts` | Touch controls, loaded only when `isMobile` |
@@ -43,7 +43,7 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 
 ## Lifecycle
 
-`setupGuis(noa, socket, dataPlayer, dataLogin)` is called from `connect.ts` on join.
+`setupGuis(noa, socket)` is called from `connect.ts` on join.
 `destroyGuis()` disposes every container on disconnect. Both are all-or-nothing; there is no
 per-GUI teardown.
 

@@ -8,8 +8,8 @@ the browser on [noa-engine](https://github.com/andyhall/noa) with Babylon.js ren
 The fork's purpose is the OpenAI WebMCP Challenge: expose the world to a browser-resident AI
 agent through WebMCP tools so it can inspect and edit voxel geometry on the player's request.
 
-The build runs on Vite. Singleplayer sessions expose ten WebMCP tools for reading player and
-world context, editing voxel geometry, and undoing agent edits.
+The build runs on Vite. Singleplayer sessions expose eleven WebMCP tools for guiding the agent,
+reading player and world context, editing voxel geometry, and undoing agent edits.
 
 ## Runtime topology
 
@@ -98,6 +98,7 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `src/lib/player/gamepad.ts` | Gamepad input |
 | `src/lib/mcp/index.ts` | WebMCP registration, local player context, console shim |
 | `src/lib/mcp/bridge.ts` | Correlated `PluginMessage` request/response bridge |
+| `src/lib/mcp/tools/buildingGuide.ts` | Static agent role, workflow, construction, material, and traversal guidance |
 | `src/lib/mcp/tools/definitions.ts` | Tool descriptions and JSON Schemas |
 | `src/lib/singleplayer/setup.ts` | Spawns the server worker, wires `VirtualSocket` |
 | `src/lib/singleplayer/server/server.ts` | Worker entry: hosts `voxelsrv-server` |

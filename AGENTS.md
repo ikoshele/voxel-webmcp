@@ -8,7 +8,7 @@ A fork of VoxelSrv, a browser voxel game. Target: the **OpenAI WebMCP Challenge*
 declares WebMCP tools so an agent running inside the browser can edit the player's world from
 natural-language requests ("build a second floor on this house").
 
-The first singleplayer WebMCP layer exposes ten tools for world context, voxel editing, and
+The first singleplayer WebMCP layer exposes eleven tools for guidance, world context, voxel editing, and
 undo. The forked game's build runs on Vite.
 
 ## Read order

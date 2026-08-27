@@ -3,6 +3,7 @@ import { BaseSocket } from '../../socket';
 import { addMessage } from '../../gui/ingame/chat';
 import { blockIDmap, blockIDs } from '../gameplay/registry';
 import { attachMcpBridge, callWorkerTool, detachMcpBridge } from './bridge';
+import { getBuildingGuide } from './tools/buildingGuide';
 import { createToolDefinitions, ToolDefinition } from './tools/definitions';
 import { validateToolArguments } from './tools/validation';
 
@@ -67,6 +68,7 @@ function activity(name: string, args: any, result?: any) {
 }
 
 function makeExecutor(definition: ToolDefinition, noa: Engine) {
+	if (definition.name === 'get_building_guide') return async () => getBuildingGuide();
 	if (definition.name === 'get_player') return (args: any, signal?: AbortSignal) => getPlayer(noa, signal);
 	return async (args: any, signal?: AbortSignal) => {
 		if (!definition.readOnly) activity(definition.name, args);

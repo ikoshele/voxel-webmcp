@@ -51,10 +51,10 @@ class Database extends Dexie {
 export const db = new Database();
 
 export async function saveWorld(name: string, data: object, settings: IWorldSettings) {
-	await db.world.delete(name);
-	await db.worlddata.delete(name);
-	await db.world.add({name, settings, lastplay: Date.now()}, name)
-	await db.worlddata.add({name, data}, name)
+	await db.transaction('rw', db.world, db.worlddata, async () => {
+		await db.world.put({ name, settings, lastplay: Date.now() }, name);
+		await db.worlddata.put({ name, data }, name);
+	});
 }
 
 export async function deleteWorld(name: string) {
