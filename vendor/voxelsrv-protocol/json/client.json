@@ -1,0 +1,322 @@
+{
+  "nested": {
+    "LoginResponse": {
+      "fields": {
+        "username": {
+          "type": "string",
+          "id": 1
+        },
+        "protocol": {
+          "type": "uint32",
+          "id": 2
+        },
+        "mobile": {
+          "type": "bool",
+          "id": 3
+        },
+        "client": {
+          "type": "string",
+          "id": 4
+        },
+        "uuid": {
+          "type": "string",
+          "id": 5
+        },
+        "secret": {
+          "type": "string",
+          "id": 6
+        }
+      }
+    },
+    "Ping": {
+      "fields": {
+        "time": {
+          "type": "uint64",
+          "id": 1
+        }
+      }
+    },
+    "ActionMove": {
+      "fields": {
+        "x": {
+          "type": "double",
+          "id": 1
+        },
+        "y": {
+          "type": "double",
+          "id": 2
+        },
+        "z": {
+          "type": "double",
+          "id": 3
+        }
+      }
+    },
+    "ActionLook": {
+      "fields": {
+        "rotation": {
+          "type": "float",
+          "id": 1
+        },
+        "pitch": {
+          "type": "float",
+          "id": 2
+        }
+      }
+    },
+    "ActionMoveLook": {
+      "fields": {
+        "x": {
+          "type": "double",
+          "id": 1
+        },
+        "y": {
+          "type": "double",
+          "id": 2
+        },
+        "z": {
+          "type": "double",
+          "id": 3
+        },
+        "rotation": {
+          "type": "float",
+          "id": 4
+        },
+        "pitch": {
+          "type": "float",
+          "id": 5
+        }
+      }
+    },
+    "ActionMessage": {
+      "fields": {
+        "message": {
+          "type": "string",
+          "id": 1
+        }
+      }
+    },
+    "ActionBlockPlace": {
+      "fields": {
+        "x": {
+          "type": "sint32",
+          "id": 1
+        },
+        "y": {
+          "type": "sint32",
+          "id": 2
+        },
+        "z": {
+          "type": "sint32",
+          "id": 3
+        },
+        "x2": {
+          "type": "sint32",
+          "id": 4
+        },
+        "y2": {
+          "type": "sint32",
+          "id": 5
+        },
+        "z2": {
+          "type": "sint32",
+          "id": 6
+        }
+      }
+    },
+    "ActionBlockBreak": {
+      "fields": {
+        "x": {
+          "type": "sint32",
+          "id": 1
+        },
+        "y": {
+          "type": "sint32",
+          "id": 2
+        },
+        "z": {
+          "type": "sint32",
+          "id": 3
+        },
+        "finished": {
+          "type": "bool",
+          "id": 4
+        }
+      }
+    },
+    "ActionInventoryClick": {
+      "fields": {
+        "slot": {
+          "type": "sint32",
+          "id": 1
+        },
+        "type": {
+          "type": "Type",
+          "id": 2
+        },
+        "inventory": {
+          "type": "TypeInv",
+          "id": 3
+        }
+      },
+      "nested": {
+        "Type": {
+          "values": {
+            "LEFT": 0,
+            "RIGHT": 1,
+            "MIDDLE": 2,
+            "SELECT": 3
+          }
+        },
+        "TypeInv": {
+          "values": {
+            "MAIN": 0,
+            "ARMOR": 1,
+            "CRAFTING": 2,
+            "HOOK": 3
+          }
+        }
+      }
+    },
+    "ActionInventoryPick": {
+      "fields": {
+        "slot": {
+          "type": "sint32",
+          "id": 1
+        },
+        "slot2": {
+          "type": "sint32",
+          "id": 2
+        },
+        "block": {
+          "type": "sint32",
+          "id": 3
+        }
+      }
+    },
+    "ActionInventoryOpen": {
+      "fields": {
+        "inventory": {
+          "type": "Type",
+          "id": 1
+        }
+      },
+      "nested": {
+        "Type": {
+          "values": {
+            "MAIN": 0,
+            "CHEST": 1,
+            "CRAFTING": 2,
+            "FURNACE": 3
+          }
+        }
+      }
+    },
+    "ActionInventoryClose": {
+      "fields": {
+        "inventory": {
+          "type": "Type",
+          "id": 1
+        }
+      },
+      "nested": {
+        "Type": {
+          "values": {
+            "MAIN": 0,
+            "CHEST": 1,
+            "CRAFTING": 2,
+            "FURNACE": 3
+          }
+        }
+      }
+    },
+    "ActionClick": {
+      "fields": {
+        "x": {
+          "type": "sint32",
+          "id": 1
+        },
+        "y": {
+          "type": "sint32",
+          "id": 2
+        },
+        "z": {
+          "type": "sint32",
+          "id": 3
+        },
+        "type": {
+          "type": "string",
+          "id": 4
+        },
+        "onBlock": {
+          "type": "bool",
+          "id": 5
+        }
+      }
+    },
+    "ActionClickEntity": {
+      "fields": {
+        "uuid": {
+          "type": "string",
+          "id": 1
+        },
+        "type": {
+          "type": "string",
+          "id": 2
+        },
+        "distance": {
+          "type": "float",
+          "id": 3
+        }
+      }
+    },
+    "ActionKeyPress": {
+      "fields": {
+        "key": {
+          "type": "string",
+          "id": 1
+        },
+        "type": {
+          "type": "bool",
+          "id": 2
+        }
+      }
+    },
+    "WorldChunkIsLoadedResponce": {
+      "fields": {
+        "x": {
+          "type": "sint32",
+          "id": 1
+        },
+        "y": {
+          "type": "sint32",
+          "id": 2
+        },
+        "z": {
+          "type": "sint32",
+          "id": 3
+        },
+        "loaded": {
+          "type": "bool",
+          "id": 4
+        }
+      }
+    },
+    "PluginMessage": {
+      "fields": {
+        "key": {
+          "type": "string",
+          "id": 1
+        },
+        "version": {
+          "type": "uint32",
+          "id": 2
+        },
+        "value": {
+          "type": "bytes",
+          "id": 3
+        }
+      }
+    }
+  }
+}

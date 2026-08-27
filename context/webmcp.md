@@ -1,8 +1,7 @@
 # WebMCP layer
 
-**Nothing in this file is implemented yet.** No file under `src/` mentions WebMCP or MCP.
-This document records the target, the decisions already taken, and the questions still open,
-so a future session does not re-litigate them or mistake a proposal for a decision.
+The ten-tool first pass is implemented for singleplayer. This document defines its behavior,
+constraints, and the scenario testing still required before the hackathon demo.
 
 ## What WebMCP is
 
@@ -79,7 +78,7 @@ Intended routing:
 
 | Concern | Path |
 | --- | --- |
-| Player pose, camera, targeted block | Main thread only. `noa.ents.getPosition`, `noa.camera.heading/pitch`, `noa.targetedBlock`. No worker hop |
+| Player pose, camera, targeted block | Main thread through `src/lib/mcp/index.ts`. `noa.ents.getPosition`, `noa.camera.heading/pitch`, `noa.targetedBlock` |
 | Volume reads | Worker only, via `World.getBlockSync` / `getBlock(pos, allowgen)` |
 | Block writes | Worker, via `World.setBlock` directly, bypassing player rules |
 | Applying writes to the client | Server emits `WorldMultiBlockUpdate`; `connect.ts:405` already handles it |
@@ -89,9 +88,10 @@ returns air for anything outside view distance and cannot report that it did so,
 client-side read path degrade invisibly at chunk edges. `execute` is async anyway, so the
 `postMessage` round trip is free.
 
-**Transport for the round trip:** `IPluginMessage` exists in `voxelsrv-protocol` in both
-directions and is handled nowhere on either side. It carries custom request/response traffic
-without regenerating the protocol. Handlers must be added in `connect.ts` and in the worker.
+**Transport for the round trip:** `IPluginMessage` carries JSON request and response objects
+under key `voxel-webmcp`, version `1`. `src/lib/mcp/bridge.ts` owns correlation ids, timeouts,
+abort handling and pending promises. The worker intercepts the key before normal server packet
+dispatch. The `window.__mcp.call(name, args)` shim uses the same executors as browser agents.
 
 **Undo journal:** worker RAM, never memfs. `vol.toJSON()` is what gets saved to IndexedDB;
 a journal in memfs would inflate every world save.
@@ -223,12 +223,20 @@ Deliberately absent for now: `sphere`, `cylinder`, `pyramid`, brushes, schematic
 `paste_region`, `get_history`. Anything the model can express through `set_blocks` does not get
 a dedicated tool until testing shows it repeatedly spending many blocks on the same operation.
 
-### Block names
+### Block names and material context
 
-The 52 registered block names ship as an `enum` in the `inputSchema` of every tool that takes a
+The registered block names ship as an `enum` in the `inputSchema` of every tool that takes a
 block. The agent then cannot name a block that does not exist, instead of discovering it from
-an error. The enum repeats across `fill_region`, `replace_blocks` and `set_blocks`; at roughly
-200 tokens each that is accepted. No `list_block_types` tool.
+an error. The enum repeats across `fill_region`, `replace_blocks` and `set_blocks`; its fixed
+schema cost is accepted. No `list_block_types` tool.
+
+Material characteristics are centralized in `get_world_info.block_catalog`, not repeated in
+write schemas. The catalog is generated from the authoritative server registry and gives each
+block a human label, concise appearance, texture names, and traits such as solid, transparent,
+fluid, or plant. The persistent `get_world_info` tool description tells the agent to call it
+before planning a build. WebMCP has no page-level system-instruction primitive, so this read
+tool is the single source of material context without permanently placing the full catalog in
+every agent turn.
 
 Real names are short and unprefixed: `stone`, `dirt`, `grass`, `cobblestone`, `log`, `sand`,
 `leaves`, `water`, `bricks`, `planks`, `glass`, `gravel`, `snow`, `stonebrick`. Not
@@ -260,13 +268,18 @@ Decided details that are easy to get wrong:
 5. **Every write result reports what actually happened** — blocks changed, and whether anything
    was skipped for being outside the world border. `World.isBlockInBounds` failures are silent
    at the engine level and must not be silent at the tool level.
+6. **Operation limits are enforced in the worker, not only in JSON Schema.** Scans and edits
+   are capped at 65,536 voxels, explicit `set_blocks` calls at 2,048 entries, slice requests at
+   16 planes, stack count at 16, and scan radius at 19.
+7. **Large visible updates are packeted in groups of 1,000 blocks.** One call remains one undo
+   step even when it emits several `WorldMultiBlockUpdate` packets.
 
 ## Open questions
 
-None blocking. The surface above is a starting point, not a frozen specification. The next step
-is running real scenarios against a model — second floor, copy a window to another wall,
-basement, staircase, roof, tower — and letting the gaps show themselves rather than designing
-further on paper.
+Browser-agent verification is pending. Run real scenarios — second floor, copy a window to
+another wall, basement, staircase, roof, tower — and let the gaps show themselves rather than
+designing further on paper. The console shim is the deterministic diagnostic path when the
+browser does not expose `document.modelContext`.
 
 ## Superseded by this repository
 

@@ -8,8 +8,8 @@ the browser on [noa-engine](https://github.com/andyhall/noa) with Babylon.js ren
 The fork's purpose is the OpenAI WebMCP Challenge: expose the world to a browser-resident AI
 agent through WebMCP tools so it can inspect and edit voxel geometry on the player's request.
 
-Work completed in the fork so far: build migrated from webpack to Vite. No gameplay or
-protocol changes yet.
+The build runs on Vite. Singleplayer sessions expose ten WebMCP tools for reading player and
+world context, editing voxel geometry, and undoing agent edits.
 
 ## Runtime topology
 
@@ -20,12 +20,14 @@ Three JavaScript contexts, all inside one browser tab.
 │  index.ts  →  noa-engine (Babylon.js render, physics, input) │
 │  Babylon GUI overlay (menus, hotbar, chat, inventory)        │
 │  client chunk store (src/lib/gameplay/world.ts)              │
+│  document.modelContext tools + window.__mcp test shim         │
 │  BaseSocket subclass                                         │
 └───────────────┬─────────────────────────────────────────────┘
                 │ VirtualSocket over postMessage
 ┌───────────────▼─────────────────────────────────────────────┐
 │  Web Worker: server.js                                       │
 │  voxelsrv-server — authoritative World, players, registry    │
+│  WebMCP handler, world revision, undo journal                 │
 │  memfs volume holds chunk files                              │
 │  spawns further workers for terrain generation               │
 └──────────────────────────────────────────────────────────────┘
@@ -38,6 +40,11 @@ Singleplayer is not a special case that bypasses the network layer. The client a
 a server through a socket; in singleplayer that socket is `VirtualSocket`, which forwards
 packets to a worker over `postMessage` instead of a WebSocket. Packets stay plain objects and
 skip protobuf serialization on this path.
+
+WebMCP calls use `PluginMessage` packets with JSON encoded into the packet's byte payload and a
+correlation id. The main-thread bridge resolves asynchronous tool calls from matching worker
+responses. The browser API and the console shim use the same executors and therefore exercise
+the same world paths.
 
 ## Data flow: placing a block today
 
@@ -69,6 +76,10 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
    `context/build.md`.
 8. **Global mutable singletons.** `noa`, `socket`, `gameSettings`, `blocks`, `blockIDmap` are
    module-level `let` exports mutated at runtime. Import them, do not snapshot them.
+9. **WebMCP exists only during an active singleplayer session.** Its registration signal is
+   aborted on disconnect, and all pending bridge calls are rejected.
+10. **Agent writes are journaled in worker RAM.** One successful write call is one capped undo
+    step; the journal is neither saved nor placed in memfs.
 
 ## Source map
 
@@ -86,8 +97,13 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `src/lib/player/controls.ts` | Input bindings, block break/place, hotbar |
 | `src/lib/player/entity.ts` | Player entity setup, movement packets |
 | `src/lib/player/gamepad.ts` | Gamepad input |
+| `src/lib/mcp/index.ts` | WebMCP registration, local player context, console shim |
+| `src/lib/mcp/bridge.ts` | Correlated `PluginMessage` request/response bridge |
+| `src/lib/mcp/tools/definitions.ts` | Tool descriptions and JSON Schemas |
 | `src/lib/singleplayer/setup.ts` | Spawns the server worker, wires `VirtualSocket` |
 | `src/lib/singleplayer/server/server.ts` | Worker entry: hosts `voxelsrv-server` |
+| `src/lib/singleplayer/server/mcpHandler.ts` | Authoritative scans, edits, material catalog, undo |
+| `src/lib/singleplayer/server/worldRevision.ts` | Revision tracking for `World.setBlock` |
 | `src/lib/singleplayer/server/*Patches.ts` | Monkey-patches over the server package |
 | `src/lib/helpers/storage.ts` | Dexie/IndexedDB persistence |
 | `src/lib/helpers/protocol.ts` | Protobuf worker entry |
@@ -101,7 +117,8 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 
 | Package | Note |
 | --- | --- |
-| `noa-engine` | Forked to `VoxelSrv/noa-engine`, not upstream |
+| `noa-engine` | Pinned to the legacy `VoxelSrv/noa-engine` commit used by the browser client |
+| `aabb-3d` | Pinned to the CommonJS `0.2.1` commit required by `noa-engine` |
 | `voxelsrv-server` | The full server, imported and run in-browser |
 | `voxelsrv-protocol` | Packet definitions, protobuf schemas |
 | `memfs` | Aliased over `fs` |
@@ -116,6 +133,5 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 
 ## Open decisions
 
-All WebMCP decisions live in `context/webmcp.md`, including the tool surface. Nothing there is
-blocking. The next step is running real scenarios against a model rather than designing further
-on paper.
+All WebMCP behavior and remaining validation work live in `context/webmcp.md`. The tool surface
+is ready for scenario testing against a browser agent.

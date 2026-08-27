@@ -25,6 +25,12 @@ The `inventory` component is created in `index.ts`, not by noa.
 `gameSettings.controls` and are applied by `rebindControls(noa, settings)`, which unbinds
 everything first — bindings are stored in settings, not in `noaOpts()` (`bindings: {}` there).
 
+Camera look also has a window-level keyboard fallback that does not require canvas focus or
+pointer lock. Arrow left/right change heading and arrow up/down change pitch. A key tap rotates
+15 degrees, while holding rotates continuously. It is intentionally fixed rather than stored
+in `gameSettings.controls`, so browser agents can rely on the arrow keys in every session. The
+handler is disabled while chat, an inventory, crafting, a chest, or the pause menu is open.
+
 Every handler starts with `if (!serverSettings.ingame ...) return;` and most also call
 `testIsIn(noa)`, which checks pointer lock state.
 
@@ -35,6 +41,7 @@ Every handler starts with `if (!serverSettings.ingame ...) return;` and most als
 | `mid-fire` | Pick block: select or swap the matching hotbar slot |
 | `inventory`, `chat`, `cmd`, `menu`, `tab`, `zoom`, `screenshot`, `hide` | GUI toggles |
 | `numberkey` (1–9) | Hotbar selection |
+| Arrow keys | Camera heading and pitch without pointer lock |
 
 `castRay()` performs a separate Babylon `pickWithRay` against meshes named `hitbox-*` to detect
 entity clicks. Its own comment marks it as possibly broken.

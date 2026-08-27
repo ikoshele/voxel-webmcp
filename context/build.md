@@ -1,6 +1,8 @@
 # Build
 
-Vite. Two separate builds: the app bundle and the worker bundles.
+Vite 5.4.21 on Node 20.19.x and npm 10.x. All direct dependency versions are exact because the
+abandoned game stack is not compatible with current releases selected from semver ranges. Two
+separate builds produce the app bundle and the worker bundles.
 
 ## Commands
 
@@ -42,12 +44,15 @@ Set in `vite.shared.mjs`, shared by both builds:
 | `fs` | `memfs` | `voxelsrv-server` writes chunk files; there is no filesystem in a browser |
 | `readline` | `fakereadline` | Local stub in `fake_modules/`; the server's console input is unused |
 
+Symlinks stay unresolved in both builds so local `file:` packages retain their `node_modules`
+identity and pass through dependency optimization and CommonJS conversion.
+
 ## Plugins
 
 **`noa-require-context`** (`vite.shared.mjs`). `noa-engine` loads its ECS components with
-webpack's `require.context('../components/', false, /\.js$/)`. Vite has no equivalent, so the
-plugin rewrites that call into an `import.meta.glob` shim. It runs with `enforce: 'pre'` so the
-rewrite lands before `vite:import-glob` processes the file.
+webpack's `require.context('../components/', false, /\.js$/)`. Production and worker builds
+rewrite that call into an `import.meta.glob` shim. The dev dependency optimizer uses a matching
+esbuild plugin that generates a static CommonJS module map before prebundling.
 
 **`vite-plugin-node-polyfills`** with `exclude: ['fs']`. Without the exclusion the polyfill
 silently overrides the `fs` → `memfs` alias, and the server worker starts with no filesystem —
@@ -64,7 +69,7 @@ world saving fails with no clear error.
 - `commonjsOptions.include: [/node_modules/]` with `transformMixedEsModules: true` — several
   dependencies ship mixed CJS/ESM and fail to bundle without it.
 
-Dev server binds `0.0.0.0` with permissive CORS headers.
+Dev server binds `0.0.0.0` with permissive CORS headers and accepts Cloudflare Tunnel subdomains under `.trycloudflare.com` via `server.allowedHosts`.
 
 ## Traps
 

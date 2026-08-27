@@ -8,9 +8,12 @@ import { IWorldSettings } from '../../../values';
 import { OperatorPermissionHolder } from './operatorPermissionHolder';
 import patchWorldClass from './worldPatches';
 import patchServerClass from './serverPatches';
+import { handleMcpMessage } from './mcpHandler';
+import { patchWorldRevision } from './worldRevision';
 
 patchServerClass();
 patchWorldClass();
+patchWorldRevision();
 
 let notLeft = true;
 let worldData = false;
@@ -136,6 +139,9 @@ self.onmessage = async (e) => {
 			const data2: ILoginResponse = data;
 			data2.uuid = 'lp-localplayer';
 			emit(type, data2);
+			break;
+		case 'PluginMessage':
+			if (!(await handleMcpMessage(server, socket, data, worldSettings))) emit(type, data);
 			break;
 		default:
 			emit(type, data);

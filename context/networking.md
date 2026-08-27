@@ -29,9 +29,10 @@ awaited in `index.ts`.
 
 ### PluginMessage
 
-`IPluginMessage` exists in both directions in the protocol and is **handled nowhere** — not in
-`connect.ts`, not in `voxelsrv-server`. It is a free, already-typed escape hatch for custom
-request/response traffic that needs no protocol regeneration. See `context/webmcp.md`.
+`IPluginMessage` exists in both protocol directions. `src/lib/mcp/bridge.ts` and
+`src/lib/singleplayer/server/mcpHandler.ts` use key `voxel-webmcp`, version `1`, a JSON byte
+payload and a correlation id for WebMCP calls. Other plugin-message keys continue through the
+normal server listener path. No protocol regeneration is required.
 
 ## Packet handling
 

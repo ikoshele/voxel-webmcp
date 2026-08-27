@@ -1,0 +1,1 @@
+{"LoginResponse":0,"Ping":1,"ActionMove":2,"ActionLook":3,"ActionMoveLook":4,"ActionMessage":5,"ActionBlockPlace":6,"ActionBlockBreak":7,"ActionInventoryClick":8,"ActionInventoryPick":9,"ActionInventoryOpen":10,"ActionInventoryClose":11,"ActionClick":12,"ActionClickEntity":13,"ActionKeyPress":14,"WorldChunkIsLoadedResponce":15,"PluginMessage":16}

@@ -17,7 +17,66 @@ import { chestInventory, closeChest } from '../../gui/ingame/inventory/chest';
 import { isMobile } from 'mobile-device-detect';
 import screenshot from 'canvas-screenshot';
 
+const keyboardLookKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
+const keyboardLookPressed = new Set<string>();
+const keyboardLookTapStep = Math.PI / 12;
+const keyboardLookHoldSpeed = Math.PI / 1500;
+
+function canUseKeyboardLook() {
+	return serverSettings.ingame && !inventory && !craftingInventory && !chestInventory && !chatInput?.isVisible && !pauseScreen?.isVisible;
+}
+
+function rotateCamera(noa: Engine, horizontal: number, vertical: number) {
+	const fullTurn = Math.PI * 2;
+	const maxPitch = Math.PI / 2 - 0.001;
+	noa.camera.heading = (noa.camera.heading + horizontal + fullTurn) % fullTurn;
+	noa.camera.pitch = Math.max(-maxPitch, Math.min(maxPitch, noa.camera.pitch + vertical));
+	const cosPitch = Math.cos(noa.camera.pitch);
+	noa.camera._dirVector[0] = Math.sin(noa.camera.heading) * cosPitch;
+	noa.camera._dirVector[1] = -Math.sin(noa.camera.pitch);
+	noa.camera._dirVector[2] = Math.cos(noa.camera.heading) * cosPitch;
+}
+
+function keyboardLookDelta(key: string, amount: number): [number, number] {
+	if (key === 'ArrowLeft') return [-amount, 0];
+	if (key === 'ArrowRight') return [amount, 0];
+	if (key === 'ArrowUp') return [0, -amount];
+	return [0, amount];
+}
+
+function setupKeyboardLook(noa: Engine) {
+	window.addEventListener('keydown', (event) => {
+		if (!keyboardLookKeys.has(event.key) || !canUseKeyboardLook()) return;
+		event.preventDefault();
+		keyboardLookPressed.add(event.key);
+		if (!event.repeat) {
+			const [horizontal, vertical] = keyboardLookDelta(event.key, keyboardLookTapStep);
+			rotateCamera(noa, horizontal, vertical);
+		}
+	});
+
+	window.addEventListener('keyup', (event) => {
+		keyboardLookPressed.delete(event.key);
+	});
+
+	window.addEventListener('blur', () => keyboardLookPressed.clear());
+
+	noa.on('beforeRender', (dt: number) => {
+		if (!canUseKeyboardLook()) return;
+		const amount = Math.min(dt, 50) * keyboardLookHoldSpeed;
+		let horizontal = 0;
+		let vertical = 0;
+		keyboardLookPressed.forEach((key) => {
+			const delta = keyboardLookDelta(key, amount);
+			horizontal += delta[0];
+			vertical += delta[1];
+		});
+		if (horizontal !== 0 || vertical !== 0) rotateCamera(noa, horizontal, vertical);
+	});
+}
+
 export function setupControls(noa: any) {
+	setupKeyboardLook(noa);
 	// Helpers
 	const eid = noa.playerEntity;
 	const scene = noa.rendering.getScene();

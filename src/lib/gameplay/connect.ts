@@ -75,6 +75,7 @@ import { getScreen } from '../../gui/main';
 import { addToast, toastColors } from '../../gui/parts/toastMessage';
 import { ProxyHandler } from './proxyHandler';
 import { Engine } from 'noa-engine';
+import { startMcpSession, stopMcpSession } from '../mcp';
 
 export let socket: BaseSocket | null = null;
 let chunkInterval: any = null;
@@ -94,6 +95,7 @@ let entityList = {};
 let connectionScreen = null;
 
 export function disconnect(menu: boolean = true): boolean {
+	stopMcpSession();
 	socket.close(0);
 	stopListening(noa);
 	if (connectionScreen != null) {
@@ -375,6 +377,7 @@ export function setupConnection(noax, socketx: BaseSocket, serverInfo: IServerIn
 			clearStorage();
 
 			setupGuis(noa, socket, dataPlayer, dataLogin);
+			void startMcpSession(noa, socket).catch((error) => console.error('Failed to start WebMCP session', error));
 
 			if (isMobile) {
 				showMobileControls(false);

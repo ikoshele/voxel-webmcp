@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite';
-import { sharedAlias, sharedCommonjs, sharedPlugins } from './vite.shared.mjs';
+import { noaRequireContextEsbuild, sharedAlias, sharedCommonjs, sharedPlugins } from './vite.shared.mjs';
 
 export default defineConfig({
 	base: './',
 	plugins: sharedPlugins(),
-	resolve: { alias: sharedAlias },
+	resolve: { alias: sharedAlias, preserveSymlinks: true },
+	optimizeDeps: {
+		esbuildOptions: {
+			plugins: [noaRequireContextEsbuild()],
+		},
+	},
 	build: {
 		outDir: 'dist',
 		emptyOutDir: true,
@@ -23,6 +28,7 @@ export default defineConfig({
 	},
 	server: {
 		host: '0.0.0.0',
+		allowedHosts: ['.trycloudflare.com'],
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',

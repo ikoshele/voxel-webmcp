@@ -10,13 +10,16 @@ browser, reads the surrounding voxel geometry and edits it in response to natura
 The agent operates on voxel geometry, not on game objects. The world has no notion of a house,
 a wall or a room. Those exist only in the model's reasoning.
 
-Status: the WebMCP layer is not implemented yet. The repository currently holds the forked game
-with its build migrated to Vite.
+Status: the Vite-based singleplayer game exposes ten WebMCP tools for compact world inspection,
+geometry editing, material discovery, and WorldEdit-style undo. Browser-agent scenario testing
+is in progress.
 
 ## Running
 
 ```bash
-npm install
+nvm install 20.19.0
+nvm use 20.19.0
+npx --yes npm@10.9.2 install
 npm run dev      # builds workers, then starts the Vite dev server
 ```
 
@@ -26,6 +29,23 @@ npm run build    # production build into dist/
 
 `npm run build:workers` must run before a bare `vite` invocation — the npm scripts do it for
 you. See `context/build.md`.
+
+After entering a singleplayer world, the same executors exposed to a browser agent are available
+through a diagnostic console shim:
+
+```javascript
+window.__mcp.list()
+await window.__mcp.call('get_world_info', {})
+await window.__mcp.call('get_player', {})
+```
+
+In a WebMCP-capable browser they are also registered on `document.modelContext`. See
+`context/webmcp.md` for the complete tool contract and `HANDOVER.md` for the verification
+scenarios.
+
+Arrow keys rotate the camera without mouse pointer lock: left/right turn, up/down look
+vertically. A tap rotates 15 degrees and holding a key rotates continuously, which makes camera
+control available in agent browsers that cannot drive relative mouse movement.
 
 ## Documentation
 

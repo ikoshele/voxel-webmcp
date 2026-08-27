@@ -8,8 +8,8 @@ A fork of VoxelSrv, a browser voxel game. Target: the **OpenAI WebMCP Challenge*
 declares WebMCP tools so an agent running inside the browser can edit the player's world from
 natural-language requests ("build a second floor on this house").
 
-The WebMCP layer **does not exist yet**. The repository currently holds the forked game with
-its build migrated from webpack to Vite.
+The first singleplayer WebMCP layer exposes ten tools for world context, voxel editing, and
+undo. The forked game's build runs on Vite.
 
 ## Read order
 
@@ -31,12 +31,12 @@ After AGENTS.md + architecture.md an agent should be able to make a small change
 | `context/world-chunks.md` | Client chunk store, block registry, id↔name |
 | `context/player-input.md` | Controls, `targetedBlock`, player pose |
 | `context/gui.md` | Babylon GUI, screens, menus |
-| `context/webmcp.md` | Planned WebMCP layer. Not built yet |
+| `context/webmcp.md` | Implemented WebMCP behavior, limits, and pending scenarios |
 
-## Starting implementation
+## WebMCP verification
 
-`HANDOVER.md` holds the build order and traps for the first implementation session. It is
-temporary — delete it once the tools work.
+`HANDOVER.md` holds the browser verification order and runtime traps. It is temporary — delete
+it once the console and agent scenarios pass.
 
 ## Verification commands
 
