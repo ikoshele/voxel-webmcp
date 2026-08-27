@@ -120,7 +120,7 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `voxelsrv-server` | The full server, imported and run in-browser |
 | `voxelsrv-protocol` | Installed from a pinned upstream GitHub commit; packet definitions and protobuf schemas |
 | `memfs` | Aliased over `fs` |
-| `fakereadline` | Local stub in `fake_modules/`, aliased over `readline` |
+| `shims/readline.mjs` | Browser stub aliased over the unused Node `readline` module |
 
 ## Dead or inert code
 

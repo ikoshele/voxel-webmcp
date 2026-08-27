@@ -4,7 +4,7 @@ import { noaRequireContextEsbuild, sharedAlias, sharedCommonjs, sharedPlugins } 
 export default defineConfig({
 	base: './',
 	plugins: sharedPlugins(),
-	resolve: { alias: sharedAlias, preserveSymlinks: true },
+	resolve: { alias: sharedAlias },
 	optimizeDeps: {
 		esbuildOptions: {
 			plugins: [noaRequireContextEsbuild()],

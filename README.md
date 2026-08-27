@@ -10,9 +10,9 @@ browser, reads the surrounding voxel geometry and edits it in response to natura
 The agent operates on voxel geometry, not on game objects. The world has no notion of a house,
 a wall or a room. Those exist only in the model's reasoning.
 
-Status: the Vite-based singleplayer game exposes ten WebMCP tools for compact world inspection,
-geometry editing, material discovery, and WorldEdit-style undo. Browser-agent scenario testing
-is in progress.
+Status: the Vite-based singleplayer game exposes eleven WebMCP tools for agent guidance,
+compact world inspection, geometry editing, material discovery, and WorldEdit-style undo.
+Browser-agent scenario testing is in progress.
 
 ## Running
 
@@ -25,6 +25,13 @@ npm run dev      # builds workers, then starts the Vite dev server
 
 ```bash
 npm run build    # production build into dist/
+```
+
+Build and run the production container on <http://localhost:8080/>:
+
+```bash
+docker build -t voxel-webmcp .
+docker run --rm -p 8080:80 voxel-webmcp
 ```
 
 `npm run build:workers` must run before a bare `vite` invocation — the npm scripts do it for

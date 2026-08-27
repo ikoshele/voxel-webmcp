@@ -15,7 +15,7 @@ for (const worker of workers) {
 	await build({
 		configFile: false,
 		plugins: sharedPlugins(),
-		resolve: { alias: sharedAlias, preserveSymlinks: true },
+		resolve: { alias: sharedAlias },
 		define: { 'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production') },
 		build: {
 			outDir: 'public',

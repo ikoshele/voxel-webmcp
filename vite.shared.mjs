@@ -49,7 +49,7 @@ export const sharedPlugins = () => [noaRequireContext(), nodePolyfills({ exclude
 
 export const sharedAlias = {
 	fs: 'memfs',
-	readline: 'fakereadline',
+	readline: resolve('shims/readline.mjs'),
 };
 
 export const sharedCommonjs = {

@@ -10,10 +10,18 @@ separate builds produce the app bundle and the worker bundles.
 npm run build:workers   # node build-workers.mjs → public/*.js
 npm run dev             # build:workers, then vite dev server on 0.0.0.0
 npm run build           # build:workers, then vite build → dist/
+docker build -t voxel-webmcp .
+docker run --rm -p 8080:80 voxel-webmcp
 ```
 
 `npm run dev` and `npm run build` both run `build:workers` first. A bare `npx vite` does not,
 and the game will fail at startup with missing worker files.
+
+The root `Dockerfile` is a multi-stage production build. Its Node 20.19 builder installs all
+dependencies, builds the workers and app, and is discarded. The runtime image is Nginx with
+only `dist/` copied into its static web root and listens on container port 80. Public GitHub
+dependencies are pinned to immutable commits through HTTPS URLs, so Docker builds do not
+require host SSH keys or copy the host `.npmrc`.
 
 ## Worker bundles
 
@@ -41,10 +49,7 @@ Set in `vite.shared.mjs`, shared by both builds:
 | Alias | Target | Reason |
 | --- | --- | --- |
 | `fs` | `memfs` | `voxelsrv-server` writes chunk files; there is no filesystem in a browser |
-| `readline` | `fakereadline` | Local stub in `fake_modules/`; the server's console input is unused |
-
-Symlinks stay unresolved in both builds so the local `fakereadline` package retains its
-`node_modules` identity and passes through dependency optimization and CommonJS conversion.
+| `readline` | `shims/readline.mjs` | Browser stub; the server's console input is unused |
 
 ## Plugins
 
