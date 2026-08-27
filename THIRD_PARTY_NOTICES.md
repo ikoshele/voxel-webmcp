@@ -62,17 +62,6 @@ runtime packages declare permissive MIT, ISC, BSD, Zlib, Apache 2.0, CC0, 0BSD, 
 terms in their package metadata or source repositories. `package-lock.json` is authoritative
 for the versions included by a build.
 
-## Player model provenance requiring resolution
-
-The inherited files `public/models/player.json` and `public/models/player_small.json` are
-attributed by the upstream VoxelSrv project to
-[Template CEM by ewanhowell5195](https://www.curseforge.com/minecraft/texture-packs/template-cem).
-That source currently states "All Rights Reserved" and does not publish a redistribution grant.
-
-This attribution is not permission to redistribute those files. Before a public release, the
-maintainers must either obtain and record permission from the author or replace the files with
-models whose licence permits redistribution.
-
 ## Trademarks
 
 Minecraft is a trademark of Microsoft Corporation. This project is an unofficial voxel game

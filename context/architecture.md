@@ -121,10 +121,6 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `memfs` | Aliased over `fs` |
 | `shims/readline.mjs` | Browser stub aliased over the unused Node `readline` module |
 
-## Dead or inert code
-
-- `src/gui/hand.ts` — `setupHand` is commented out at its only call site in `src/gui/setup.ts`.
-
 ## Open decisions
 
 All WebMCP behavior and remaining validation work live in `context/webmcp.md`. The tool surface

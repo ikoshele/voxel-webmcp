@@ -1,5 +1,3 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
-
 import { gameSettings, serverSettings } from '../../values';
 import { blockIDmap, blocks } from '../gameplay/registry';
 import { inventory, openInventory, closeInventory } from '../../gui/ingame/inventory/main';
@@ -90,7 +88,6 @@ export function setupControls(noa: any) {
 	});
 	// Helpers
 	const eid = noa.playerEntity;
-	const scene = noa.rendering.getScene();
 	const ui = getUI(1);
 
 	noa.container.canvas.addEventListener('click', () => {
@@ -115,29 +112,6 @@ export function setupControls(noa: any) {
 		return -1;
 	}
 
-	// Used for clicking entities. Might be broken
-
-	function castRay() {
-		let ray = scene.createPickingRay(
-			window.innerWidth / 2,
-			window.innerHeight / 2,
-			BABYLON.Matrix.Identity(),
-			noa.rendering.getScene().activeCameras[0]
-		);
-
-		const hit = scene.pickWithRay(
-			ray,
-			(mesh) => {
-				return mesh.name.startsWith('hitbox-');
-			},
-			true
-		);
-
-		if (hit.pickedMesh) {
-			return [hit.pickedMesh.name.substring(7), hit.distance];
-		} else return null;
-	}
-
 	/*
 	 * Replace buildin block target check
 	 */
@@ -154,12 +128,6 @@ export function setupControls(noa: any) {
 	noa.inputs.down.on('fire', async function () {
 		if (!serverSettings.ingame || !testIsIn()) return;
 
-		const entClick = castRay();
-		if (!!entClick) {
-			socketSend('ActionClickEntity', { type: 'left', uuid: entClick[0], distance: entClick[1] });
-			socketSend('ActionClick', { type: 'left', x: 0, y: 0, z: 0, onBlock: false });
-			return;
-		}
 		if (noa.targetedBlock) {
 			//startBreakingBlock(noa.targetedBlock.position, noa.targetedBlock.blockID)
 			const pos = noa.targetedBlock.position;
@@ -178,12 +146,6 @@ export function setupControls(noa: any) {
 
 	noa.inputs.down.on('alt-fire', function () {
 		if (!serverSettings.ingame || !testIsIn()) return;
-		const entClick = castRay();
-		if (!!entClick) {
-			socketSend('ActionClickEntity', { type: 'right', uuid: entClick[0], distance: entClick[1] });
-			socketSend('ActionClick', { type: 'right', x: 0, y: 0, z: 0, onBlock: false });
-			return;
-		}
 
 		if (noa.targetedBlock != undefined) {
 			const pos = noa.targetedBlock.adjacent;
@@ -208,14 +170,6 @@ export function setupControls(noa: any) {
 				socketSend('ActionInventoryClick', { slot: slot, inventory: ActionInventoryClick.TypeInv.MAIN, type: ActionInventoryClick.Type.SELECT });
 				noa.ents.getState(eid, 'inventory').selected = slot;
 			} else if (slot != -1) socketSend('ActionInventoryPick', { slot: slot, slot2: sel, block: noa.targetedBlock.blockID });
-		}
-	});
-
-	// 3rd person view
-
-	noa.inputs.down.on('thirdprsn', function () {
-		if (!serverSettings.ingame) return;
-		if (document.pointerLockElement == noa.container.canvas) {
 		}
 	});
 

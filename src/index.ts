@@ -2,7 +2,6 @@ import { isMobile } from 'mobile-device-detect';
 import Engine2, { Engine } from 'noa-engine';
 import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 import { rebindControls, setupControls } from './lib/player/controls';
-import { defineModelComp } from './lib/helpers/model';
 
 import {
 	noaOpts,
@@ -89,7 +88,6 @@ getSettings().then(async (data: IGameSettings) => {
 	setupToasts();
 	setupClouds(noa);
 	setupSky(noa);
-	defineModelComp(noa);
 
 	const scene = noa.rendering.getScene();
 

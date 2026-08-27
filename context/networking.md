@@ -30,7 +30,8 @@ normal server listener path.
 
 ## Packet handling
 
-`src/lib/gameplay/connect.ts` registers every server→client handler inside `setupConnection`.
+`src/lib/gameplay/connect.ts` registers the supported server→client handlers inside
+`setupConnection`.
 
 | Packet | Effect |
 | --- | --- |
@@ -38,11 +39,14 @@ normal server listener path.
 | `WorldMultiBlockUpdate` | Same, looped over a block list |
 | `WorldChunkLoad` | `setChunk` in `world.ts`, inflate if compressed |
 | `RegistryUpdate` | `registerBlocks` and `registerItems` |
-| `PlayerEntity` | Creates the local player entity |
 | `PlayerKick` | Tears down the local session |
 
 `WorldMultiBlockUpdate` is the bulk-write channel. Region edits use it rather than emitting
 thousands of single updates.
+
+`PlayerEntity` and the `Entity*` rendering packets are intentionally not consumed. The client
+keeps noa's invisible local player entity for physics, movement, camera position, and inventory,
+but it does not load or render player or mob models.
 
 `socketSend(type, data)` is the exported client→server helper; it no-ops when `socket` is null.
 

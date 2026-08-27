@@ -13,7 +13,6 @@ import { isMobile } from 'mobile-device-detect';
 import { setupGuis, destroyGuis } from '../../gui/setup';
 import { addMessage } from '../../gui/ingame/chat';
 import { setupPlayerEntity } from '../player/entity';
-import { addNametag, applyModel } from '../helpers/model';
 import { registerBlocks, registerItems } from './registry';
 import { setChunk, clearStorage, removeChunk, chunkSetBlock, chunkExist } from './world';
 import { cloudMesh, setupClouds, setupSky, skyMesh } from './sky';
@@ -28,7 +27,6 @@ import {
 	IChatMessage,
 	ILoginRequest,
 	ILoginSuccess,
-	IPlayerEntity,
 	IPlayerInventory,
 	IPlayerKick,
 	IPlayerSlotUpdate,
@@ -39,15 +37,9 @@ import {
 	IEnvironmentFogUpdate,
 	IEnvironmentSkyUpdate,
 	IWorldMultiBlockUpdate,
-	IEntityNameUpdate,
 	IPlayerUpdateMovement,
 	IPlayerUpdatePhysics,
 	IPlayerApplyImpulse,
-	IEntityCreate,
-	IEntityRemove,
-	IEntityMove,
-	IEntityHeldItem,
-	IEntityArmor,
 	ILoginStatus,
 	IPlayerSetBlockReach,
 	IUpdateTextBoard,
@@ -58,7 +50,7 @@ import {
 	PlayerOpenInventory,
 	IRegistryUpdate,
 } from 'voxelsrv-protocol/js/server';
-import { Engine as BabylonEngine, Scene } from '@babylonjs/core';
+import { Scene } from '@babylonjs/core';
 import { setAssetServer } from '../helpers/assets';
 import { openCrafting } from '../../gui/ingame/inventory/crafting';
 import { showMobileControls } from '../../gui/mobile';
@@ -69,7 +61,6 @@ import { startMcpSession, stopMcpSession } from '../mcp';
 
 export let socket: BaseSocket | null = null;
 let chunkInterval: any = null;
-let entityEvent: Function | null = null;
 let moveEvent: Function | null = null;
 
 export function socketSend(type, data) {
@@ -77,7 +68,6 @@ export function socketSend(type, data) {
 }
 
 let noa: Engine;
-let entityList = {};
 let connectionScreen = null;
 
 export function disconnect(): boolean {
@@ -88,11 +78,6 @@ export function disconnect(): boolean {
 		connectionScreen.dispose();
 	}
 	noa.ents.getPhysics(noa.playerEntity).body.airDrag = 9999;
-	noa.ents.getState(noa.playerEntity, 'model')?.main?.dispose();
-	Object.values(entityList).forEach((x) => {
-		noa.ents.deleteEntity(x, true);
-	});
-	entityList = {};
 	destroyGuis();
 	if (isMobile) {
 		showMobileControls(false);
@@ -118,12 +103,10 @@ export function setupConnection(noax, socketx: BaseSocket) {
 	document.title = 'Voxel WebMCP - Loading world...';
 	socketx.noa = noax;
 	noa = noax;
-	const engine: BabylonEngine = noa.rendering.getScene().getEngine();
 	noa.worldName = 'World' + Math.round(Math.random() * 1000);
 	socket = socketx;
 	console.log('Player: ' + gameSettings.nickname, 'World: ' + socket.world);
 	let firstLogin = true;
-	entityList = {};
 
 	const connScreen = new PopupGUI([{ text: 'Loading local world...' }]);
 	connectionScreen = connScreen;
@@ -166,16 +149,6 @@ export function setupConnection(noax, socketx: BaseSocket) {
 			client: `Voxel WebMCP ${gameVersion}`,
 			uuid: uuid,
 			secret: '',
-		});
-
-		let entityIgnore: string = '';
-
-		socket.on('PlayerEntity', (data: IPlayerEntity) => {
-			console.log('Ignoring player-entity: ' + data.uuid);
-			entityIgnore = data.uuid;
-			if (entityList[data.uuid] != undefined && noa != undefined) noa.ents.deleteEntity(entityList[data.uuid]);
-			delete entityList[data.uuid];
-			applyModel(noa.playerEntity, data.uuid, data.model || 'player', data.texture || 'skins:' + uuid, 1.85, false, '', [0, 0, 0]);
 		});
 
 		scene.fogMode = defaultValues.fogMode;
@@ -349,38 +322,6 @@ export function setupConnection(noax, socketx: BaseSocket) {
 				noa.ents.getPhysicsBody(noa.playerEntity).applyImpulse([data.x, data.y, data.z]);
 			});
 
-			socket.on('EntityCreate', async (data: IEntityCreate) => {
-				if (entityIgnore != data.uuid) {
-					const entData = JSON.parse(data.data);
-					entityList[data.uuid] = noa.ents.add(Object.values(entData.position), 1, 2, null, null, false, true);
-					applyModel(entityList[data.uuid], data.uuid, entData.model, entData.texture, entData.offset, entData.nametag, entData.name, entData.hitbox);
-					noa.ents.getState(entityList[data.uuid], 'position').newPosition = noa.ents.getState(entityList[data.uuid], 'position').position;
-				}
-			});
-
-			socket.on('EntityNameUpdate', (data: IEntityNameUpdate) => {
-				const model = noa.ents.getState(entityList[data.uuid], 'model');
-				model.nametag.dispose();
-				model.nametag = addNametag(model.main, data.name, noa.ents.getPositionData(entityList[data.uuid]).height, data.visible);
-			});
-
-			socket.on('EntityRemove', (data: IEntityRemove) => {
-				if (entityList[data.uuid] != undefined) noa.ents.deleteEntity(entityList[data.uuid]);
-				delete entityList[data.uuid];
-			});
-
-			socket.on('EntityMove', (data: IEntityMove) => {
-				if (entityList[data.uuid] != undefined) {
-					var pos = [data.x, data.y, data.z];
-					noa.ents.getState(entityList[data.uuid], 'position').newPosition = pos;
-					noa.ents.getState(entityList[data.uuid], 'position').rotation = data.rotation * 2;
-					noa.ents.getState(entityList[data.uuid], 'position').pitch = data.pitch * 2;
-				}
-			});
-
-			socket.on('EntityHeldItem', (data: IEntityHeldItem) => {});
-			socket.on('EntityArmor', (data: IEntityArmor) => {});
-
 			const pos = noa.ents.getState(noa.playerEntity, 'position');
 			let lastPos = [];
 			let lastRot = 0;
@@ -420,98 +361,11 @@ export function setupConnection(noax, socketx: BaseSocket) {
 			};
 
 			noa.on('tick', moveEvent);
-
-			entityEvent = async function () {
-				const playerModel = noa.ents.getState(noa.playerEntity, 'model');
-				const playerPos = noa.ents.getState(noa.playerEntity, 'position');
-
-				if (playerModel != undefined) {
-					const value = noa.camera.zoomDistance != 0;
-					playerModel.main.visibility = value;
-					var children = playerModel.main.getChildMeshes(false);
-
-					let i;
-					for (i = 0; i < children.length; i++) {
-						children[i].visibility = value;
-					}
-
-					if (value) {
-						updateAnimationOfModel(playerModel, playerPos, noa.camera.getTargetPosition(), playerModel.main);
-						playerModel.main.rotation.y = noa.camera.heading;
-						playerModel.models.head.rotation.x = noa.camera.pitch;
-
-					}
-				}
-
-				Object.values(entityList).forEach(async function (id: number) {
-					const pos = noa.ents.getState(id, 'position');
-					const newPos = pos.newPosition;
-					const mainMesh = noa.ents.getState(id, 'mesh');
-					const model = noa.ents.getState(id, 'model');
-					if (mainMesh != undefined && newPos != undefined && pos.position != undefined) {
-						let move = vec3.create();
-						vec3.lerp(move, pos.position, newPos, 12 / engine.getFps());
-						noa.ents.setPosition(id, move[0], move[1], move[2]);
-						updateAnimationOfModel(model, pos, newPos, mainMesh.mesh);
-					}
-				});
-			};
-
-			function updateAnimationOfModel(model, pos, newPos, mainMesh) {
-				const posx = pos.position;
-
-				let move = vec3.create();
-				vec3.lerp(move, posx, newPos, 12 / engine.getFps());
-				const rot = pos.rotation ? pos.rotation : 0;
-				const pitch = pos.pitch ? pos.pitch : 0;
-				const pos2da = [newPos[0], 0, newPos[2]];
-				const pos2db = [posx[0], 0, posx[2]];
-
-				if (model.x == undefined) {
-					model.x = 0;
-					model.y = 0;
-					model.z = false;
-				}
-
-				let sin = Math.sin(model.x);
-				if (vec3.dist(pos2da, pos2db) > 0.05) {
-					model.y = vec3.dist(pos2da, pos2db) / 5;
-					model.x = model.x + model.y;
-					if (Math.abs(sin) > 0.95) model.z = true;
-					else if (Math.abs(sin) < 0.05) model.z = false;
-				} else {
-					const sin2 = parseFloat(sin.toFixed(1));
-					if (sin2 != 0 && !model.z) model.x = model.x - 0.05;
-					if (sin2 != 0 && model.z) model.x = model.x + 0.05;
-				}
-
-				model.models.left_arm.rotation.x = -sin;
-				model.models.right_arm.rotation.x = sin;
-				model.models.right_leg.rotation.x = -sin;
-				model.models.left_leg.rotation.x = sin;
-
-				if (!mainMesh.rotation.y) mainMesh.rotation.y = 0;
-
-				const oldRot = mainMesh.rotation.y;
-
-				if (rot / 2 - oldRot > 5) mainMesh.rotation.y = rot / 2;
-				else mainMesh.rotation.y = (rot / 2 + oldRot) / 2;
-
-				model.models.head.rotation.x = pitch / 2;
-
-				if (model.nametag != undefined) {
-					model.nametag.rotation.y = noa.camera.heading - mainMesh.rotation.y;
-					model.nametag.rotation.x = noa.camera.pitch;
-				}
-			}
-
-			noa.on('beforeRender', entityEvent);
 		});
 	});
 }
 
 export function stopListening(noa) {
 	if (moveEvent != null) noa.off('tick', moveEvent);
-	if (moveEvent != null) noa.off('beforeRender', entityEvent);
 	if (chunkInterval != null) clearInterval(chunkInterval);
 }

@@ -39,7 +39,6 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 | `src/gui/parts/*` | Reusable widgets: window, menu item, item slot, toast, popup, formatted text |
 | `src/gui/tab.ts` | Player list overlay |
 | `src/gui/mobile.ts` | Touch controls, loaded only when `isMobile` |
-| `src/gui/hand.ts` | Held-item render. Dead — `setupHand` is commented out in `setup.ts` |
 
 ## Lifecycle
 

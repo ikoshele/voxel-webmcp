@@ -52,9 +52,6 @@ building or movement bindings permanently pressed after returning to the page.
 | `numberkey` (1–9) | Hotbar selection |
 | Arrow keys | Camera heading and pitch without pointer lock |
 
-`castRay()` performs a separate Babylon `pickWithRay` against meshes named `hitbox-*` to detect
-entity clicks. Its own comment marks it as possibly broken.
-
 The `tick` handler reads `noa.inputs.state.scrolly` for hotbar scrolling and applies an upward
 impulse when jumping inside a fluid block.
 
