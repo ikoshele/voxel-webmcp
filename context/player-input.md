@@ -50,9 +50,8 @@ returning to the page. The clear is deliberately not run when pointer lock is ga
 every boolean in `noa.inputs.state` without emitting `up`, so a key held across the transition
 stays dead until it is released and pressed again.
 
-`window.inputState()` dumps every gate and every private input counter behind block breaking and
-placing; `window.inputReset()` runs the same clear by hand. Both exist for diagnosing reports of
-world interaction that stops working without a reload.
+Reading that state from the console proves little, because opening devtools blurs the window and
+releases pointer lock, and both of those run the clear before anything can be inspected.
 
 | Binding | Action |
 | --- | --- |

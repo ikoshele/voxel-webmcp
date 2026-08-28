@@ -323,7 +323,7 @@ export function setupConnection(noax, socketx: BaseSocket) {
 			});
 
 			const pos = noa.ents.getState(noa.playerEntity, 'position');
-			let lastPos = [];
+			let lastPos: number[] | null = null;
 			let lastRot = 0;
 			let lastPitch = 0;
 
@@ -334,7 +334,7 @@ export function setupConnection(noax, socketx: BaseSocket) {
 				if (h5rge == 0) {
 					const rot = noa.camera.heading;
 					const pitch = noa.camera.pitch;
-					if (vec3.dist(lastPos, pos.position) > 0.15 || lastRot != rot || lastPitch != pitch) {
+					if (lastPos == null || vec3.dist(lastPos, pos.position) > 0.15 || lastRot != rot || lastPitch != pitch) {
 						lastPos = [...pos.position];
 						lastPitch = pitch;
 						lastRot = rot;
