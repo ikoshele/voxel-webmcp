@@ -37,14 +37,22 @@ supports embedded agent browsers that cannot retain relative mouse capture.
 
 Pointer lock is requested only from a canvas click or an explicit input action because browsers
 reject attempts made during bootstrap without a user gesture. Rejections are consumed because
-embedded browsers can disallow pointer lock while world interaction remains available.
+embedded browsers can disallow pointer lock while world interaction remains available. The canvas
+click handler returns early when the canvas already holds pointer lock; re-requesting it on every
+click makes the browser emit extra `pointerlockchange` events.
 
 Window-level capture handlers normalize mouse and pointer button transitions before the legacy
 input library handles them. Mouse releases are observed even when they occur outside the game
-container. Window blur, document hiding, and pointer-lock changes clear the input library's
+container. Window blur, document hiding, and the loss of pointer lock clear the input library's
 private key and binding counters as well as its public boolean state. This prevents missed
 mouse-up and key-up events from leaving building or movement bindings permanently pressed after
-returning to the page.
+returning to the page. The clear is deliberately not run when pointer lock is gained: it wipes
+every boolean in `noa.inputs.state` without emitting `up`, so a key held across the transition
+stays dead until it is released and pressed again.
+
+`window.inputState()` dumps every gate and every private input counter behind block breaking and
+placing; `window.inputReset()` runs the same clear by hand. Both exist for diagnosing reports of
+world interaction that stops working without a reload.
 
 | Binding | Action |
 | --- | --- |
@@ -80,3 +88,9 @@ adds gamepad input, enabled by `gameSettings.gamepad`.
    while an interactive GUI is open.
 4. Hotbar wrap-around is hardcoded to 8 in one branch (`pickedID = 8`) while the upper bound
    uses `gameSettings.hotbarsize`. Non-default hotbar sizes wrap incorrectly.
+5. `noa.container.hasPointerLock` is always false. micro-game-shell compares
+   `document.pointerLockElement` against the container element while this fork locks the canvas.
+   `index.ts` compensates by driving `noa.ignorePointerLock`, which is the flag that actually
+   gates `camera.applyInputsToCamera()`.
+6. `openChest` has no caller, so `chestInventory` is always null. It is still part of `testIsIn`
+   and of the canvas click guard so the two stay in agreement.
