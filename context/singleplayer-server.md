@@ -103,8 +103,26 @@ from the site root.
 - `vec.dist(playerPos, blockpos) < 14`
 - the selected inventory slot holds an item mapped to a block
 
+Breaking additionally requires `world.getBlockSync(blockpos, false)` to return a block, which it
+does not when the containing chunk is absent from `world.chunks` and from memfs.
+
 If any fails it silently returns. These rules apply to the player. Editing that must not obey
 them writes through `World.setBlock` directly instead — see `context/webmcp.md`.
+
+`playerPos` is `player.entity.data.position`, advanced only by `action_move`. Upstream that
+method ends in `if (vec.dist(pos, move) < 22) this.move(move)` and does nothing at all when the
+requested position is further away — no move, no teleport, no packet. A single gap wider than 22
+blocks therefore freezes the authoritative position permanently, because every later request is
+measured against the same stale point. Both block rules then read that stale `playerPos` and
+reject every edit past 14 blocks in silence. `serverPatches.ts` replaces `action_move` so a
+request beyond 22 blocks is treated as a resync: it clears `cache.lastBlockCheck.status` and
+accepts the position, while anything closer still goes through the untouched validated path.
+
+That cache is the method's other latch. It stores the last rejected voxel and short-circuits —
+teleporting the client back and returning before any re-check — whenever a later move floors to
+that same voxel while `status` is `true`. A move is rejected when its chunk is missing from
+`world.chunks` or when the destination voxel is solid. Clearing the flag on resync is what stops
+the short-circuit from outliving the condition that set it.
 
 ## World API in the worker
 
@@ -128,3 +146,5 @@ them writes through `World.setBlock` directly instead — see `context/webmcp.md
 2. `SingleplayerLeave` is guarded by a `notLeft` flag; a second leave is a no-op.
 3. `server.status` is `'initiating'` until both init messages arrive. Calls before that are
    dropped without error.
+4. Every player-authoritative rejection is silent. The client gets no packet back, so a rejected
+   break is indistinguishable on the client from a click that never reached the worker.

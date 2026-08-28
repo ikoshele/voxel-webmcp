@@ -50,6 +50,15 @@ but it does not load or render player or mob models.
 
 `socketSend(type, data)` is the exported client→server helper; it no-ops when `socket` is null.
 
+## Position reporting
+
+`moveEvent` in `setupConnection` runs on every second noa tick and sends `ActionMoveLook`,
+`ActionMove`, or `ActionLook` when the position has moved past 0.15 or the camera has turned.
+`lastPos` starts as `null` and the first tick always sends, so the server tracks the player from
+the spawn drop onward. Seeding it with an empty array instead makes `vec3.dist` return `NaN`,
+which silences the position branch until the first camera turn — long enough for the fall from
+`playerStart` to exceed the server's own movement gate. See `context/singleplayer-server.md`.
+
 ## Connection lifecycle
 
 `src/index.ts` creates one `VirtualSocket` through `createSingleplayerServer`, then
