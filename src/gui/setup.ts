@@ -5,6 +5,7 @@ import { setupTab, tabContainer } from './tab';
 import { buildHotbar, hotbar } from './ingame/hotbar';
 import { craftingInventory } from './ingame/inventory/crafting';
 import { setupMcpBadge, destroyMcpBadge } from './ingame/mcpBadge';
+import { cameraHint, setupCameraHint } from './ingame/cameraHint';
 
 export function setupGuis(noa, socket) {
 	buildHotbar(noa, socket);
@@ -13,6 +14,7 @@ export function setupGuis(noa, socket) {
 	setupChat();
 	setupTab();
 	setupMcpBadge();
+	setupCameraHint();
 }
 
 export function destroyGuis() {
@@ -24,5 +26,6 @@ export function destroyGuis() {
 	if (tabContainer != null) tabContainer.dispose();
 	if (debug != null) debug.dispose();
 	if (dot != null) dot.dispose();
+	if (cameraHint != null) cameraHint.dispose();
 	destroyMcpBadge();
 }

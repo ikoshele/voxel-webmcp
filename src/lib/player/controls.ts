@@ -15,7 +15,6 @@ import screenshot from 'canvas-screenshot';
 
 const keyboardLookKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 const keyboardLookPressed = new Set<string>();
-const keyboardLookTapStep = Math.PI / 12;
 const keyboardLookHoldSpeed = Math.PI / 1500;
 
 function canUseKeyboardLook() {
@@ -45,10 +44,6 @@ function setupKeyboardLook(noa: Engine) {
 		if (!keyboardLookKeys.has(event.key) || !canUseKeyboardLook()) return;
 		event.preventDefault();
 		keyboardLookPressed.add(event.key);
-		if (!event.repeat) {
-			const [horizontal, vertical] = keyboardLookDelta(event.key, keyboardLookTapStep);
-			rotateCamera(noa, horizontal, vertical);
-		}
 	});
 
 	window.addEventListener('keyup', (event) => {

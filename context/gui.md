@@ -37,6 +37,7 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 | `src/gui/ingame/chat.ts` | Chat log and input; exports `input`, `chatContainer`, `changeState`, `addMessage` |
 | `src/gui/ingame/debug.ts` | F3-style debug overlay and crosshair (`dot`) |
 | `src/gui/ingame/mcpBadge.ts` | WebMCP DOM badge in the top-left corner, with the tool-invocation counter |
+| `src/gui/ingame/cameraHint.ts` | Non-interactive responsive bottom-left desktop hint for arrow-key camera control without mouse look |
 | `src/gui/ingame/inventory/*` | Main inventory, crafting, chest, save, JSON export/import, and guarded world replacement actions |
 | `src/gui/parts/*` | Reusable widgets: window, menu item, item slot, toast, popup, formatted text |
 | `src/gui/tab.ts` | Player list overlay |
@@ -48,7 +49,7 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 `destroyGuis()` disposes every container and removes the badge on disconnect. Both are all-or-nothing; there is no
 per-GUI teardown.
 
-In-game GUI singletons (`inventory`, `craftingInventory`, `chestInventory`, `hotbar`,
+In-game GUI singletons (`inventory`, `craftingInventory`, `chestInventory`, `hotbar`, `cameraHint`,
 `chatContainer`, `input`, `tabContainer`, `debug`, `dot`) are module-level
 exports, nullable, and checked for truthiness by input handlers to decide whether a key press
 belongs to the game or to a GUI.

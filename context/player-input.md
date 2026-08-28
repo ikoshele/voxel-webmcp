@@ -26,8 +26,8 @@ The `inventory` component is created in `index.ts`, not by noa.
 everything first — bindings are stored in settings, not in `noaOpts()` (`bindings: {}` there).
 
 Camera look also has a window-level keyboard fallback that does not require canvas focus or
-pointer lock. Arrow left/right change heading and arrow up/down change pitch. A key tap rotates
-15 degrees, while holding rotates continuously. It is intentionally fixed rather than stored
+pointer lock. Arrow left/right change heading and arrow up/down change pitch continuously from
+the first rendered frame, without a discrete tap step. It is intentionally fixed rather than stored
 in `gameSettings.controls`, so browser agents can rely on the arrow keys in every session. The
 handler is disabled while chat, an inventory, crafting, or a chest is open.
 

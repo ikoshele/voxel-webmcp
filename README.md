@@ -58,8 +58,9 @@ In a WebMCP-capable browser they are also registered on `document.modelContext`.
 scenarios.
 
 Arrow keys rotate the camera without mouse pointer lock: left/right turn, up/down look
-vertically. A tap rotates 15 degrees and holding a key rotates continuously, which makes camera
-control available in agent browsers that cannot drive relative mouse movement.
+vertically. Rotation begins smoothly on the first rendered frame and continues while the key is
+held, which makes precise camera control available in agent browsers that cannot drive relative
+mouse movement.
 
 ## Documentation
 
