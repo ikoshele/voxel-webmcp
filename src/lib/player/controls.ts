@@ -127,21 +127,42 @@ function requestGamePointerLock(noa: Engine) {
 	} catch {}
 }
 
+function exposeInputDiagnostics(noa: Engine) {
+	window['inputState'] = () => {
+		const inputs: any = noa.inputs;
+		return {
+			ingame: serverSettings.ingame,
+			testIsIn: testIsIn(),
+			gates: { inventory: !!inventory, crafting: !!craftingInventory, chest: !!chestInventory, chat: !!chatInput?.isVisible },
+			pointerLocked: document.pointerLockElement == noa.container.canvas,
+			state: { ...inputs.state },
+			pressCounts: { ...inputs._bindPressCounts },
+			mouseKeyStates: { left: inputs._keyStates[-1], middle: inputs._keyStates[-2], right: inputs._keyStates[-3] },
+			mouseBindings: { 1: inputs._keybindmap['<mouse 1>'], 2: inputs._keybindmap['<mouse 2>'], 3: inputs._keybindmap['<mouse 3>'] },
+		};
+	};
+	window['inputReset'] = () => releaseInputState(noa);
+}
+
 export function setupControls(noa: any) {
+	exposeInputDiagnostics(noa);
 	setupKeyboardLook(noa);
 	setupReliableMouseButtons(noa);
 	window.addEventListener('blur', () => releaseInputState(noa));
 	document.addEventListener('visibilitychange', () => {
 		if (document.hidden) releaseInputState(noa);
 	});
-	document.addEventListener('pointerlockchange', () => releaseInputState(noa));
+	document.addEventListener('pointerlockchange', () => {
+		if (document.pointerLockElement != noa.container.canvas) releaseInputState(noa);
+	});
 	// Helpers
 	const eid = noa.playerEntity;
 	const ui = getUI(1);
 
 	noa.container.canvas.addEventListener('click', () => {
 		if (!serverSettings.ingame) return;
-		if (!!inventory || !!craftingInventory || chatInput.isVisible) return;
+		if (!!inventory || !!craftingInventory || !!chestInventory || chatInput.isVisible) return;
+		if (document.pointerLockElement == noa.container.canvas) return;
 
 		requestGamePointerLock(noa);
 

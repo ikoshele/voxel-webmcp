@@ -24,7 +24,7 @@ export function setupDebug(noa: Engine, server: string) {
 	debug.color = '#f0f0f0';
 	debug.fontSize = `${8 * scale}px`;
 	debug.left = '5px';
-	debug.top = '5px';
+	debug.top = '66px';
 
 	debug.shadowColor = '#111111';
 	debug.shadowOffsetX = 1;
@@ -61,7 +61,7 @@ export function setupDebug(noa: Engine, server: string) {
 			debug.text = `VoxelSrv ${gameVersion} ${fps}\nNoa: ${noa.version}\nXYZ: ${pos}\nChunk: ${chunk}\n${serverText}`;
 		} else {
 			x = -5;
-			debug.text = `VoxelSrv ${gameVersion} (Noa ${noa.version}) ${fps}`;
+			debug.text = fps;
 		}
 	};
 

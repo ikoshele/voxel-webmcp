@@ -1,6 +1,7 @@
 import { Engine } from 'noa-engine';
 import { BaseSocket } from '../../socket';
 import { addMessage } from '../../gui/ingame/chat';
+import { recordMcpInvocation } from '../../gui/ingame/mcpBadge';
 import { blockIDmap, blockIDs } from '../gameplay/registry';
 import { attachMcpBridge, callWorkerTool, detachMcpBridge } from './bridge';
 import { getBuildingGuide } from './tools/buildingGuide';
@@ -67,7 +68,7 @@ function activity(name: string, args: any, result?: any) {
 	addMessage([{ text: `[Agent] ${name}: ${detail}`, color: '#8ee6ff' }]);
 }
 
-function makeExecutor(definition: ToolDefinition, noa: Engine) {
+function buildExecutor(definition: ToolDefinition, noa: Engine) {
 	if (definition.name === 'get_building_guide') return async () => getBuildingGuide();
 	if (definition.name === 'get_player') return (args: any, signal?: AbortSignal) => getPlayer(noa, signal);
 	return async (args: any, signal?: AbortSignal) => {
@@ -75,6 +76,14 @@ function makeExecutor(definition: ToolDefinition, noa: Engine) {
 		const result = await callWorkerTool(definition.name, args, signal);
 		if (!definition.readOnly) activity(definition.name, args, result);
 		return result;
+	};
+}
+
+function makeExecutor(definition: ToolDefinition, noa: Engine) {
+	const execute = buildExecutor(definition, noa);
+	return (args: any, signal?: AbortSignal) => {
+		recordMcpInvocation();
+		return execute(args, signal);
 	};
 }
 

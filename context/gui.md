@@ -1,7 +1,8 @@
 # GUI
 
-Babylon.js GUI (`@babylonjs/gui`) drawn over the noa canvas. No DOM UI framework, no HTML for
-game screens — `index.html` contains only the canvas mount and a script tag.
+Babylon.js GUI (`@babylonjs/gui`) drawn over the noa canvas. No DOM UI framework and no HTML for
+game screens — `index.html` contains only the canvas mount and a script tag. The single exception
+is the WebMCP badge, a plain DOM element styled from `public/style.css`.
 
 ## Screen layers
 
@@ -35,6 +36,7 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 | `src/gui/ingame/hotbar.ts` | Hotbar |
 | `src/gui/ingame/chat.ts` | Chat log and input; exports `input`, `chatContainer`, `changeState`, `addMessage` |
 | `src/gui/ingame/debug.ts` | F3-style debug overlay and crosshair (`dot`) |
+| `src/gui/ingame/mcpBadge.ts` | WebMCP DOM badge in the top-left corner, with the tool-invocation counter |
 | `src/gui/ingame/inventory/*` | Main inventory, crafting, chest, save, JSON export/import, and guarded world replacement actions |
 | `src/gui/parts/*` | Reusable widgets: window, menu item, item slot, toast, popup, formatted text |
 | `src/gui/tab.ts` | Player list overlay |
@@ -42,8 +44,8 @@ clamped by `maxScale`. `getEngine()` exposes the Babylon engine used by the GUI.
 
 ## Lifecycle
 
-`setupGuis(noa, socket)` is called from `connect.ts` on join.
-`destroyGuis()` disposes every container on disconnect. Both are all-or-nothing; there is no
+`setupGuis(noa, socket)` is called from `connect.ts` on join; it also mounts the WebMCP badge.
+`destroyGuis()` disposes every container and removes the badge on disconnect. Both are all-or-nothing; there is no
 per-GUI teardown.
 
 In-game GUI singletons (`inventory`, `craftingInventory`, `chestInventory`, `hotbar`,
@@ -72,3 +74,10 @@ Arrays of these are the standard rich-text payload for chat and popups.
    that list renders as a fallback with no error.
 5. Mobile loads `mobile.css` at runtime by injecting a `<link>` and requests fullscreen plus
    landscape lock on the first click.
+6. The debug text block starts at `top: 66px` to clear the two-row WebMCP badge above it. With
+   `gameSettings.debugInfo` off it renders only the FPS counter, so the badge stands alone.
+   The badge's tool count comes from `createToolDefinitions([]).length`; it is not a live
+   registration status and the green dot is decorative. Its second line counts invocations,
+   incremented by `recordMcpInvocation()` from `makeExecutor` in `src/lib/mcp/index.ts`, so it
+   covers both `document.modelContext` calls and `window.__mcp.call`. The count resets on every
+   `setupMcpBadge()`, meaning once per world join.
