@@ -69,8 +69,9 @@ the read tools return.
     already knows this semantics from WorldEdit's ubiquity, which is the point of copying it.
 13. **Stable operating guidance is an explicit read tool.** `get_building_guide` explains the
     voxel sandbox, the agent's operator role, startup workflow, tool selection, construction
-    principles, material usage, player traversal, world rules, and editing limits. It is local
-    to the main thread because its result does not depend on mutable world state.
+    principles, material usage, player traversal, parallel execution and undo ordering, fast
+    versus animated build presentation, world rules, and editing limits. It is local to the
+    main thread because its result does not depend on mutable world state.
 
 ## Consequences for the code
 
@@ -93,11 +94,11 @@ client-side read path degrade invisibly at chunk edges. `execute` is async anywa
 `postMessage` round trip is free.
 
 **Transport for the round trip:** `IPluginMessage` carries JSON request and response objects
-under key `voxel-webmcp`, version `1`. `src/lib/mcp/bridge.ts` owns correlation ids, timeouts,
+under key `voxel-webmcp`, version `1`. `src/lib/mcp/bridge.ts` owns correlation ids, a 90-second timeout,
 abort handling and pending promises. The worker intercepts the key before normal server packet
 dispatch. The `window.__mcp.call(name, args)` shim uses the same executors and validates against
-the same JSON Schemas as browser agents. Valid worker requests execute one at a time in arrival
-order.
+the same JSON Schemas as browser agents. Worker requests execute independently, and each
+response is returned when its own operation completes.
 
 **Undo journal:** worker RAM, never memfs. `vol.toJSON()` is what gets saved to IndexedDB;
 a journal in memfs would inflate every world save.
@@ -218,6 +219,14 @@ free from `noa.targetedBlock` and `noa.camera`.
 | `stack_region` | Repeat a box N times along a direction |
 | `undo` | Walk back `count` steps |
 
+The six bulk write tools accept `delay_ms`, an integer from 0 to 100. Zero is the default and
+uses the normal batched update path. A nonzero value reveals only genuinely changed blocks one
+at a time in deterministic order; box-shaped operations proceed from lower to higher layers,
+while `set_blocks` preserves input order. The exact change set is calculated before the first
+write. An animation whose inter-block delays would exceed 60 seconds is rejected without
+changing the world. The editing call remains active and returns its result only after the
+animation completes.
+
 `shape` values are defined as: `solid` fills the whole box (default); `walls` fills the four
 vertical sides only, leaving floor and ceiling open; `shell` fills all six faces. These follow
 WorldEdit's `//set`, `//walls` and `//faces`.
@@ -269,8 +278,9 @@ Decided details that are easy to get wrong:
 2. **`move_region` clears the source with air,** minus any part of the source the destination
    overlaps.
 3. **Undo covers every write tool uniformly,** including `copy_region`, `move_region` and
-   `stack_region`. Each is one step. The worker serializes all valid WebMCP requests in arrival
-   order so concurrent calls cannot race undo snapshots, change counts, scans, or revisions.
+   `stack_region`. Each completed call is one step. Worker requests are not serialized;
+   dependent edits and undo calls must await earlier results. Concurrent overlapping calls can
+   race their before-state snapshots, and undo order follows completion order.
 4. **A one-block scan must return that block.** `from == to`, or `radius: 0`, is a legitimate
    probe; it returns the block name, not a one-entry histogram. This is why no separate
    `get_block` tool exists.
@@ -280,8 +290,10 @@ Decided details that are easy to get wrong:
 6. **Operation limits are enforced in the worker, not only in JSON Schema.** Scans and edits
    are capped at 65,536 voxels, explicit `set_blocks` calls at 2,048 entries, slice requests at
    16 planes, stack count at 16, and scan radius at 19.
-7. **Large visible updates are packeted in groups of 1,000 blocks.** One call remains one undo
-   step even when it emits several `WorldMultiBlockUpdate` packets.
+7. **Instant visible updates are packeted in groups of 1,000 blocks; animated updates emit one
+   changed block per delay step.** One call remains one undo step in either mode. `move_region`
+   writes its destination before clearing the non-overlapping source so gradual moves remain
+   visually coherent.
 
 ## Open questions
 

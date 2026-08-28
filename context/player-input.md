@@ -36,11 +36,15 @@ available without pointer lock while no inventory, crafting, chest, or chat GUI 
 supports embedded agent browsers that cannot retain relative mouse capture.
 
 Pointer lock is requested only from a canvas click or an explicit input action because browsers
-reject attempts made during bootstrap without a user gesture.
+reject attempts made during bootstrap without a user gesture. Rejections are consumed because
+embedded browsers can disallow pointer lock while world interaction remains available.
 
-Window blur and document hiding clear the input library's private key and binding counters as
-well as its public boolean state. This prevents missed mouse-up and key-up events from leaving
-building or movement bindings permanently pressed after returning to the page.
+Window-level capture handlers normalize mouse and pointer button transitions before the legacy
+input library handles them. Mouse releases are observed even when they occur outside the game
+container. Window blur, document hiding, and pointer-lock changes clear the input library's
+private key and binding counters as well as its public boolean state. This prevents missed
+mouse-up and key-up events from leaving building or movement bindings permanently pressed after
+returning to the page.
 
 | Binding | Action |
 | --- | --- |
@@ -51,9 +55,6 @@ building or movement bindings permanently pressed after returning to the page.
 | `menu` | Escape closes an active GUI, otherwise toggles pointer lock |
 | `numberkey` (1–9) | Hotbar selection |
 | Arrow keys | Camera heading and pitch without pointer lock |
-
-`castRay()` performs a separate Babylon `pickWithRay` against meshes named `hitbox-*` to detect
-entity clicks. Its own comment marks it as possibly broken.
 
 The `tick` handler reads `noa.inputs.state.scrolly` for hotbar scrolling and applies an upward
 impulse when jumping inside a fluid block.

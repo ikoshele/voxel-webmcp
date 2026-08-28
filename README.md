@@ -78,7 +78,6 @@ maintained. Its release history is in `CHANGELOG.md`.
 - Textures: [Pixel Perfection Community Edition](https://github.com/Athemis/PixelPerfectionCE)
   by XSSheep and contributors, licensed under CC BY-SA 4.0
 - Fonts retain the licences shipped beside them in `public/fonts/`
-- The inherited player models require a provenance decision before public distribution
 
 ## Licensing
 

@@ -11,7 +11,6 @@ export function setupGuis(noa, socket) {
 	setupDebug(noa, socket.server);
 	setupChat();
 	setupTab();
-	//setupHand(noa);
 }
 
 export function destroyGuis() {

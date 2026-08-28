@@ -1,5 +1,3 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
-
 import { gameSettings, serverSettings } from '../../values';
 import { blockIDmap, blocks } from '../gameplay/registry';
 import { inventory, openInventory, closeInventory } from '../../gui/ingame/inventory/main';
@@ -82,22 +80,70 @@ function releaseInputState(noa: Engine) {
 	});
 }
 
+function setMouseButtonState(noa: Engine, button: number, pressed: boolean, event: MouseEvent | PointerEvent) {
+	if (button < 0) return;
+	const inputs: any = noa.inputs;
+	const keyCode = -1 - button;
+	const key = `<mouse ${button + 1}>`;
+	const bindings: string[] = inputs._keybindmap?.[key];
+	if (!bindings || Boolean(inputs._keyStates?.[keyCode]) == pressed) return;
+
+	bindings.forEach((binding) => {
+		const previousState = Boolean(inputs.state[binding]);
+		const previousCount = inputs._bindPressCounts?.[binding] || 0;
+		const nextCount = Math.max(0, previousCount + (pressed ? 1 : -1));
+		const nextState = nextCount > 0;
+		inputs._bindPressCounts[binding] = nextCount;
+		inputs.state[binding] = nextState;
+		if (previousState != nextState && !inputs.disabled) {
+			const emitter = pressed ? inputs.down : inputs.up;
+			emitter.emit(binding, event);
+		}
+	});
+
+	inputs._keyStates[keyCode] = pressed;
+}
+
+function setupReliableMouseButtons(noa: Engine) {
+	const container = noa.container.element as HTMLElement;
+	const canvas = noa.container.canvas as HTMLCanvasElement;
+	const updateButton = (pressed: boolean) => (event: MouseEvent | PointerEvent) => {
+		const pointerType = (event as PointerEvent).pointerType;
+		if (pointerType && pointerType != 'mouse') return;
+		if (pressed && document.pointerLockElement != canvas && !container.contains(event.target as Node)) return;
+		setMouseButtonState(noa, event.button, pressed, event);
+	};
+
+	window.addEventListener('pointerdown', updateButton(true), true);
+	window.addEventListener('pointerup', updateButton(false), true);
+	window.addEventListener('mousedown', updateButton(true), true);
+	window.addEventListener('mouseup', updateButton(false), true);
+}
+
+function requestGamePointerLock(noa: Engine) {
+	try {
+		const result: any = noa.container.canvas.requestPointerLock();
+		if (result instanceof Promise) void result.catch(() => {});
+	} catch {}
+}
+
 export function setupControls(noa: any) {
 	setupKeyboardLook(noa);
+	setupReliableMouseButtons(noa);
 	window.addEventListener('blur', () => releaseInputState(noa));
 	document.addEventListener('visibilitychange', () => {
 		if (document.hidden) releaseInputState(noa);
 	});
+	document.addEventListener('pointerlockchange', () => releaseInputState(noa));
 	// Helpers
 	const eid = noa.playerEntity;
-	const scene = noa.rendering.getScene();
 	const ui = getUI(1);
 
 	noa.container.canvas.addEventListener('click', () => {
 		if (!serverSettings.ingame) return;
 		if (!!inventory || !!craftingInventory || chatInput.isVisible) return;
 
-		noa.container.canvas.requestPointerLock();
+		requestGamePointerLock(noa);
 
 		chatInput.isVisible = false;
 		chatInput.text = '';
@@ -113,29 +159,6 @@ export function setupControls(noa: any) {
 			if (items[x] != null && items[x][1] != null && items[x][1].id == item && items[x][1].count >= count) return parseInt(items[x][0]);
 		}
 		return -1;
-	}
-
-	// Used for clicking entities. Might be broken
-
-	function castRay() {
-		let ray = scene.createPickingRay(
-			window.innerWidth / 2,
-			window.innerHeight / 2,
-			BABYLON.Matrix.Identity(),
-			noa.rendering.getScene().activeCameras[0]
-		);
-
-		const hit = scene.pickWithRay(
-			ray,
-			(mesh) => {
-				return mesh.name.startsWith('hitbox-');
-			},
-			true
-		);
-
-		if (hit.pickedMesh) {
-			return [hit.pickedMesh.name.substring(7), hit.distance];
-		} else return null;
 	}
 
 	/*
@@ -154,12 +177,6 @@ export function setupControls(noa: any) {
 	noa.inputs.down.on('fire', async function () {
 		if (!serverSettings.ingame || !testIsIn()) return;
 
-		const entClick = castRay();
-		if (!!entClick) {
-			socketSend('ActionClickEntity', { type: 'left', uuid: entClick[0], distance: entClick[1] });
-			socketSend('ActionClick', { type: 'left', x: 0, y: 0, z: 0, onBlock: false });
-			return;
-		}
 		if (noa.targetedBlock) {
 			//startBreakingBlock(noa.targetedBlock.position, noa.targetedBlock.blockID)
 			const pos = noa.targetedBlock.position;
@@ -178,12 +195,6 @@ export function setupControls(noa: any) {
 
 	noa.inputs.down.on('alt-fire', function () {
 		if (!serverSettings.ingame || !testIsIn()) return;
-		const entClick = castRay();
-		if (!!entClick) {
-			socketSend('ActionClickEntity', { type: 'right', uuid: entClick[0], distance: entClick[1] });
-			socketSend('ActionClick', { type: 'right', x: 0, y: 0, z: 0, onBlock: false });
-			return;
-		}
 
 		if (noa.targetedBlock != undefined) {
 			const pos = noa.targetedBlock.adjacent;
@@ -211,14 +222,6 @@ export function setupControls(noa: any) {
 		}
 	});
 
-	// 3rd person view
-
-	noa.inputs.down.on('thirdprsn', function () {
-		if (!serverSettings.ingame) return;
-		if (document.pointerLockElement == noa.container.canvas) {
-		}
-	});
-
 	// Opens/Closes inventory
 
 	noa.inputs.down.on('inventory', function () {
@@ -226,15 +229,15 @@ export function setupControls(noa: any) {
 		if (chatInput.isVisible) return;
 		if (!!inventory) {
 			closeInventory();
-			noa.container.canvas.requestPointerLock();
+			requestGamePointerLock(noa);
 			socketSend('ActionInventoryClose', { inventory: ActionInventoryClose.Type.MAIN });
 		} else if (!!craftingInventory) {
 			closeCrafting();
-			noa.container.canvas.requestPointerLock();
+			requestGamePointerLock(noa);
 			socketSend('ActionInventoryClose', { inventory: ActionInventoryClose.Type.CRAFTING });
 		} else if (!!chestInventory) {
 			closeChest();
-			noa.container.canvas.requestPointerLock();
+			requestGamePointerLock(noa);
 			socketSend('ActionInventoryClose', { inventory: ActionInventoryClose.Type.CHEST });
 		} else {
 			socketSend('ActionInventoryOpen', { inventory: ActionInventoryClose.Type.MAIN });
@@ -287,14 +290,14 @@ export function setupControls(noa: any) {
 			return;
 		} else if (!!chestInventory) {
 			closeChest();
-			noa.container.canvas.requestPointerLock();
+			requestGamePointerLock(noa);
 			socketSend('ActionInventoryClose', { inventory: ActionInventoryClose.Type.CHEST });
 			return;
 		}
 
 
 		if (document.pointerLockElement == noa.container.canvas) document.exitPointerLock();
-		else noa.container.canvas.requestPointerLock();
+		else requestGamePointerLock(noa);
 	});
 
 	// Sends chat message

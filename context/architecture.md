@@ -42,8 +42,8 @@ skip protobuf serialization on this path.
 WebMCP calls use `PluginMessage` packets with JSON encoded into the packet's byte payload and a
 correlation id. The main-thread bridge resolves asynchronous tool calls from matching worker
 responses. The browser API and the console shim use the same executors and therefore exercise
-the same world paths. The worker serializes valid WebMCP requests in arrival order so reads,
-writes, undo snapshots, and reported revisions cannot overlap one another.
+the same world paths. Worker requests begin independently; callers that require sequential
+edits must await each tool result before starting the next call.
 
 ## Data flow: placing a block today
 
@@ -77,9 +77,9 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
    module-level `let` exports mutated at runtime. Import them, do not snapshot them.
 9. **WebMCP exists only during an active singleplayer session.** Its registration signal is
    aborted on disconnect, and all pending bridge calls are rejected.
-10. **Agent writes are journaled in worker RAM and WebMCP requests are serialized.** One
-    successful write call is one capped undo step; the journal is neither saved nor placed in
-    memfs. Valid requests execute in worker arrival order.
+10. **Agent writes are journaled in worker RAM.** One successful write call is one capped undo
+    step; the journal is neither saved nor placed in memfs. WebMCP requests are not serialized
+    server-side, so callers must await a tool result when later work depends on it.
 
 ## Source map
 
@@ -92,7 +92,6 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `src/lib/gameplay/world.ts` | Client chunk store, noa chunk load/unload wiring |
 | `src/lib/gameplay/registry.ts` | Block/item registration, `blockIDmap` lookups |
 | `src/lib/gameplay/sky.ts` | Sky and cloud meshes |
-| `src/lib/gameplay/sound.ts` | Sound playback |
 | `src/lib/player/controls.ts` | Input bindings, block break/place, hotbar |
 | `src/lib/player/entity.ts` | Player entity setup, movement packets |
 | `src/lib/player/gamepad.ts` | Gamepad input |
@@ -121,10 +120,6 @@ end up emitting `WorldBlockUpdate` or `WorldMultiBlockUpdate`, or the client wil
 | `voxelsrv-protocol` | Installed from a pinned upstream GitHub commit; packet definitions and protobuf schemas |
 | `memfs` | Aliased over `fs` |
 | `shims/readline.mjs` | Browser stub aliased over the unused Node `readline` module |
-
-## Dead or inert code
-
-- `src/gui/hand.ts` — `setupHand` is commented out at its only call site in `src/gui/setup.ts`.
 
 ## Open decisions
 

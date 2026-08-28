@@ -21,9 +21,15 @@ export function getBuildingGuide() {
 			'Scan the relevant location before modifying existing terrain or structures.',
 			'Plan absolute integer voxel coordinates and choose the cheapest suitable editing tools.',
 			'Apply edits in a small number of atomic operations.',
+			'Wait for each editing tool result before starting a dependent edit or undo.',
 			'Re-scan important edited areas to verify the result.',
 			'Use undo if the result is incorrect.',
 		],
+		parallel_execution: {
+			allowed: 'Independent tools may be called in parallel; the server does not serialize WebMCP requests.',
+			dependencies: 'Await a tool result before starting work that depends on its output or modifies the same region.',
+			undo: 'Undo affects the most recently completed successful editing call. For parallel edits this is completion order, which may differ from invocation order.',
+		},
 		tool_selection: {
 			fill_region: 'Use for floors, foundations, boxes, walls, and shells.',
 			replace_blocks: 'Use to change a material without rebuilding existing geometry.',
@@ -31,7 +37,12 @@ export function getBuildingGuide() {
 			copy_region: 'Use to reuse repeated architectural elements with optional mirroring or rotation.',
 			move_region: 'Use to relocate existing geometry with optional mirroring or rotation.',
 			stack_region: 'Use to repeat floors, columns, walls, and patterns at a regular interval.',
-			undo: 'Use to roll back complete editing operations.',
+			undo: 'Use to roll back completed editing operations in reverse completion order.',
+		},
+		build_presentation: {
+			fast: 'Use delay_ms: 0 when speed matters or the user does not ask to watch the construction process.',
+			animated: 'When the user asks for a beautiful, cinematic, gradual, or visible build, use a nonzero delay_ms on editing tools so blocks appear one at a time.',
+			guidance: 'Choose the smallest delay that remains visually clear for the number of changed blocks. The allowed range is 0 to 100 milliseconds, and the total requested animation delay may not exceed 60000 milliseconds.',
 		},
 		construction_principles: [
 			'Translate the user request into voxel geometry while preserving useful terrain and structures unless replacement is requested.',
@@ -68,6 +79,8 @@ export function getBuildingGuide() {
 			maximum_bulk_operation_voxels: 65536,
 			maximum_explicit_blocks_per_call: 2048,
 			maximum_undo_steps: 20,
+			maximum_animation_delay_ms: 100,
+			maximum_animation_duration_ms: 60000,
 		},
 	};
 }

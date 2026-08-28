@@ -15,32 +15,18 @@ export function getAsset(asset: string, type: string): string {
 		return asset
 }	
 	else if (asset.startsWith('server:')) {
-		if (!gameSettings.allowcustom) return type == 'texture' ? './textures/error.png' : type == 'model' ? './models/player.json' : '';
+		if (!gameSettings.allowcustom) return type == 'texture' ? './textures/error.png' : '';
 		asset = asset.substr(7);
 		switch (type) {
 			case 'texture':
 				return `${server}/${asset}.png`;
-			case 'sound':
-				return `${server}/${asset}.ogg`;
-			case 'audio':
-				return `${server}/${asset}.ogg`;
-			case 'model':
-				return `${server}/${asset}.json`;
 			default:
 				return `${server}/${asset}`;
 		}
-	} else if (asset.startsWith('skins:')) {
-		return './textures/error.png';
 	} else {
 		switch (type) {
 			case 'texture':
 				return `./textures/${asset}.png`;
-			case 'sound':
-				return `./audio/${asset}.ogg`;
-			case 'audio':
-				return `./audio/${asset}.ogg`;
-			case 'model':
-				return `./models/${asset}.json`;
 			default:
 				return `./${type}/${asset}`;
 		}
