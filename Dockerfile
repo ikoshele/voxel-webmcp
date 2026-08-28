@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 
 RUN npm ci --legacy-peer-deps
 
-COPY index.html build-workers.mjs vite.config.ts vite.shared.mjs tsconfig.json ./
+COPY index.html build-workers.mjs vite.config.ts vite.shared.mjs tsconfig.json LICENCE THIRD_PARTY_NOTICES.md ./
 COPY shims ./shims
 COPY src ./src
 COPY public ./public
